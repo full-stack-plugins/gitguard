@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GitGuard local operation intent observation (not a platform receipt)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "api_version",
+    "store_id",
+    "operation_id",
+    "request_digest",
+    "generation",
+    "state"
+  ],
+  "properties": {
+    "api_version": {
+      "const": "gitguard.operation-intent/v1alpha1"
+    },
+    "store_id": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "operation_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[^\\s\\x00-\\x1f\\x7f](?:[^\\x00-\\x1f\\x7f]*[^\\s\\x00-\\x1f\\x7f])?$"
+    },
+    "request_digest": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "generation": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 2
+    },
+    "state": {
+      "enum": [
+        "prepared",
+        "attempt_recorded",
+        "recovery_required"
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "prepared"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "generation": {
+            "const": 0
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "attempt_recorded"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "generation": {
+            "const": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "recovery_required"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "generation": {
+            "const": 2
+          }
+        }
+      }
+    }
+  ]
+}

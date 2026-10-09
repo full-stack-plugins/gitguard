@@ -25,3 +25,6 @@ pub fn request(config: &ExecutionConfig, _: Operation) -> Result<(), ExecutionEr
 }
 
 pub mod grant;
+
+#[cfg(target_os = "linux")]
+pub mod intent;

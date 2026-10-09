@@ -214,6 +214,9 @@ impl GrantExpectation {
             digest,
         })
     }
+    pub(crate) fn operation_id(&self) -> &str {
+        &self.request.operation_id
+    }
     pub fn digest(&self) -> &str {
         &self.digest
     }
