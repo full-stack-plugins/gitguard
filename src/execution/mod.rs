@@ -16,7 +16,7 @@ pub enum ExecutionError {
     Disabled,
     AuthorizationUnavailable,
 }
-/// Deliberate security boundary: no mutation transport or credential provider is linked.
+/// Historical generic entrypoint: never routes to a mutation transport or credential provider.
 pub fn request(config: &ExecutionConfig, _: Operation) -> Result<(), ExecutionError> {
     if !cfg!(feature = "privileged-execution") || !config.enabled {
         return Err(ExecutionError::Disabled);
@@ -28,3 +28,9 @@ pub mod grant;
 
 #[cfg(target_os = "linux")]
 pub mod intent;
+
+#[cfg(target_os = "linux")]
+pub mod apply;
+#[cfg(target_os = "linux")]
+#[path = "../../adapters/platform_write.rs"]
+pub mod platform_write;

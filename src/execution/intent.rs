@@ -392,10 +392,33 @@ impl IntentStore {
         Ok(())
     }
     pub fn prepare(&self, expected: &GrantExpectation) -> Result<IntentReceipt, IntentError> {
+        self.prepare_digest(expected, expected.digest())
+    }
+    pub(crate) fn prepare_for_platform(
+        &self,
+        expected: &GrantExpectation,
+        platform: &str,
+    ) -> Result<IntentReceipt, IntentError> {
+        if !digest_valid(platform) {
+            return Err(IntentError::Invalid);
+        }
+        let digest = guardengine::digest_json(&(
+            "gitguard.local-apply/v1alpha1",
+            expected.digest(),
+            platform,
+        ))
+        .map_err(|_| IntentError::Invalid)?;
+        self.prepare_digest(expected, &digest)
+    }
+    fn prepare_digest(
+        &self,
+        expected: &GrantExpectation,
+        digest: &str,
+    ) -> Result<IntentReceipt, IntentError> {
         let _lock = self.lock()?;
         let (mut snapshot, records) = self.load()?;
         if let Some(old) = records.get(expected.operation_id()) {
-            return if old.request_digest == expected.digest() {
+            return if old.request_digest == digest {
                 Ok(old.clone())
             } else {
                 Err(IntentError::Conflict)
@@ -406,7 +429,7 @@ impl IntentStore {
         }
         let event = Event {
             operation_id: expected.operation_id().into(),
-            request_digest: expected.digest().into(),
+            request_digest: digest.into(),
             generation: 0,
             state: IntentState::Prepared,
         };

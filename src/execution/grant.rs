@@ -1,4 +1,4 @@
-//! Read-only controller grant observations. No executor conversion or writer is linked.
+//! Controller grant observations do not themselves authorize writes or implicitly convert into writer capabilities.
 use crate::{Repository, candidate::CandidateSnapshot};
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeSet, sync::Mutex};
@@ -214,6 +214,18 @@ impl GrantExpectation {
             digest,
         })
     }
+    pub(crate) fn request(&self) -> &GrantRequest {
+        &self.request
+    }
+    pub(crate) fn repo_id(&self) -> &str {
+        &self.repo_id
+    }
+    pub(crate) fn candidate_oid(&self) -> &str {
+        &self.candidate_oid
+    }
+    pub(crate) fn binding_digest(&self) -> &str {
+        &self.binding_digest
+    }
     pub(crate) fn operation_id(&self) -> &str {
         &self.request.operation_id
     }
@@ -284,6 +296,9 @@ impl GrantObservation {
     }
 }
 impl GrantSession {
+    pub(crate) fn expectation(&self) -> &GrantExpectation {
+        &self.expected
+    }
     pub fn new(expected: GrantExpectation) -> Self {
         Self {
             expected,
