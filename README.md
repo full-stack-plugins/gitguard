@@ -61,3 +61,8 @@ gitguard merge preview --target main --head HEAD
 ~~~
 
 Mutable ref arguments are convenience inputs only: the future implementation must resolve them once to immutable OIDs and record the resolution. Initial delivery will establish read-only observation and exact candidate fixtures, then evaluate legacy compatibility with pinned provider versions and differential tests. No force-push, destructive reset, branch deletion, hidden fetch or policy-script execution belongs in a read-only check.
+
+
+## OpenSpec implementation backlog
+
+The incremental [proposal](openspec/changes/add-candidate-bound-git-governance/proposal.md), [design](openspec/changes/add-candidate-bound-git-governance/design.md), [requirements](openspec/changes/add-candidate-bound-git-governance/specs/) and [tasks](openspec/changes/add-candidate-bound-git-governance/tasks.md) translate the architecture into pending implementation work. See the [cross-repository dependency roadmap](openspec/guard-roadmap.md) and [structural validation record](openspec/validation-2026-10-09.md). Every new implementation task remains unchecked; this branch adds planning artifacts, not product features. Earlier source-tree inventories and validation limitations describe the inspected baseline or earlier architecture-review stage; this planning stage adds OpenSpec artifacts and separately records actual CLI validation. Existing change ownership and historical completion evidence remain intact.

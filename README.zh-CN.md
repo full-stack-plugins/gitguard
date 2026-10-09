@@ -61,3 +61,8 @@ gitguard merge preview --target main --head HEAD
 ~~~
 
 可变 ref 参数仅为便捷输入：未来实现必须一次解析为不可变 OID 并记录解析结果。首期建立只读观察与精确候选测试，再以固定 provider 版本和差分测试评估旧插件兼容性。只读检查不允许强推、破坏性 reset、删除分支、隐藏 fetch 或执行策略脚本。
+
+
+## OpenSpec 实施待办
+
+新增增量 [proposal](openspec/changes/add-candidate-bound-git-governance/proposal.md)、[design](openspec/changes/add-candidate-bound-git-governance/design.md)、[规范](openspec/changes/add-candidate-bound-git-governance/specs/) 与 [tasks](openspec/changes/add-candidate-bound-git-governance/tasks.md)，将架构方案拆成待实施工作。参阅[跨仓依赖路线图](openspec/guard-roadmap.md)与[结构验证记录](openspec/validation-2026-10-09.md)。所有新增实施任务保持未勾选；本分支新增规划，不新增产品功能。前文源码树清单和验证限制对应检查基线或较早的架构审阅阶段；本次另行新增 OpenSpec 文档并记录实际 CLI 校验。既有 change 的任务归属和历史完成证据继续保留。
