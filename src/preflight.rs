@@ -29,3 +29,27 @@ pub fn preflight(
         complete,
     })
 }
+
+/// Local controller profile. All candidate wire fields remain advisory v1alpha2.
+pub fn preflight_protected(
+    repo: &Repository,
+    subject: SubjectRequest,
+    scope: &crate::scope::ProtectedTaskScope,
+    request: &CandidateRequest,
+) -> Result<PreflightResult> {
+    // Borrowed admission before source reads or legacy candidate cloning/hashing.
+    if request.worktree_id.len() > 256
+        || request.base_oid.len() > 64
+        || request
+            .merge_group_id
+            .as_ref()
+            .is_some_and(|s| s.len() > 256)
+        || request.members.len() > 64
+        || request.members.iter().any(|s| s.len() > 64)
+        || matches!(&subject, SubjectRequest::Commit(s) | SubjectRequest::TreePreview(s) if s.len() > 64)
+    {
+        return Err(crate::Diagnostic::LimitExceeded);
+    }
+    scope.validate_sources(repo)?;
+    preflight(repo, subject, scope.task_scope(), request)
+}

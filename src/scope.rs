@@ -70,3 +70,6 @@ fn required_nullable<'de, D: serde::Deserializer<'de>>(
 ) -> std::result::Result<Option<String>, D::Error> {
     Option::<String>::deserialize(d)
 }
+
+mod protected;
+pub use protected::{ImmutableScopeSource, ProtectedScopeRequest, ProtectedTaskScope};
