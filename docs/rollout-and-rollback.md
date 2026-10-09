@@ -37,55 +37,62 @@ Run only this new slice with `cargo test --locked --offline --features privilege
 
 ## Fixed source-bundle compatibility slice
 
-`scripts/prepare-local-compatibility.py` prepares the specific reviewed GitGuard
-source `df8d5ccd0445563577800ada0f6047a27444524c` with the existing reviewed
-GuardEngine source bundle from `b0e4b445e1a20a9354d55ebb41bbedaf16ec8a74`:
+`scripts/prepare-local-compatibility.py` now fixes GitGuard
+`85a9743023de788d91a370601ad2b7d5a649517a`, including the required-specialist
+M2 dispatch entry, with the same reviewed GuardEngine source bundle
+`b0e4b445e1a20a9354d55ebb41bbedaf16ec8a74`:
 
 ```sh
 python3 scripts/prepare-local-compatibility.py \
   /absolute/reviewed-guardengine-source.tar /absolute/new-review-directory
 cd /absolute/new-review-directory/gitguard
-cargo metadata --locked --offline --filter-platform x86_64-unknown-linux-gnu
+cargo metadata --locked --offline --format-version 1 --filter-platform x86_64-unknown-linux-gnu
 cargo test --locked --offline --features privileged-execution \
-  --test specialist_consumption --test evidence_trust \
-  --test cli_outcomes --test rollout_rollback
-cargo run --locked --offline --features privileged-execution --example local_rollout
+  --test rollout_rollback required_specialists_guard_actual_m2_rollout_dispatch \
+  -- --exact --nocapture
 ```
 
 Use `CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1` and a controller-selected build target
 outside the retained source directory. Preparation rejects a mismatched engine
 archive and an existing output directory. It extracts only regular files and
-directories within bounded archives, records the original source archives, and
-changes only the GG manifest's engine path to `../guardengine-0.1.0`; the lock is
-unchanged. The caller must protect the output directory. This reuses the existing
-GE/TG source-bundle procedure; it is not a package registry or publication tool.
+directories within bounded archives, records both original archives, and changes
+only the GG manifest's engine path to `../guardengine-0.1.0`; the lock is unchanged.
+The caller must protect the output directory. The package contains precisely the
+fixed source, not later preparer/documentation commits. This is local source
+packaging, not a package registry or publication tool.
 
-The fixed pins are deliberate. Later commits containing this preparation script
-or documentation are **not** included in the prepared consumer's `df8d5cc` source.
-The source archives' SHA256 values are:
+The new artifact is ledger `gitguard-local-source-85a9743.tar.gz`, SHA256
+`076d37b1d48fe214139f433348bf3ce5c267ce201fe7762a50e50ddb5784d643`.
+Original source archive hashes:
 
-- GitGuard: `0f4fbd6b03229a0fce95354fb5eab28dd5ca57df5f495c87cc3c2b9458fa614e`.
+- GitGuard: `adb08b244f6710d2752bd7f582cce2559769ff3da479ae1e979df62508ebbcfe`.
 - GuardEngine: `6fa49f998a23803c4df4c47e9b7f55de32cb867e923364f711b6694980600d45`.
 
-Author validation on Linux x86_64, Rust/Cargo 1.99.0: 8 specialist, 3 trust,
-4 CLI and 1 rollout tests passed; the actual local rollout example exited 0.
-Cargo metadata resolved the only local packages to these two bundled directories,
-not live sibling source. The engine archive matched a fresh archive of the pinned
-GE commit. Ledger `gitguard-package-verification.json` records manifest/lock/CLI
-hashes and toolchain; `gitguard-package-tests.log`, `gitguard-package-paths.json`
-and `gitguard-package-rollout.json` retain observed evidence. Preparation itself
-sets `compatibility_verified=false`; only the separate verification record reports
-the tests that actually ran.
+Author validation from inside this independent package: the new M2 required-check
+rollout test passed (one test, five refusal cases plus real authorized local write
+and rollback). Cargo metadata resolves its only local packages to the two bundled
+directories. All 577 GG and 251 GE regular files match their retained source
+archives, with only the declared GG manifest path transformation. Evidence:
+ledger `gitguard-package-85a9743-{prepare,metadata,verification,capture}.json` and
+`gitguard-package-85a9743-tests.log`. The preparer itself continues to write
+`compatibility_verified=false`; only the separate execution record reports the
+checks actually performed. No old full matrix or native producer was rerun.
 
-This is a **source bundle**, not a verified current `.crate` release. The earlier
+The previous fixed `df8d5ccd0445563577800ada0f6047a27444524c` package and all of
+its evidence remain retained unchanged. Its GG source archive SHA256 is
+`0f4fbd6b03229a0fce95354fb5eab28dd5ca57df5f495c87cc3c2b9458fa614e`.
+That earlier package passed 8 specialist, 3 trust, 4 CLI and 1 rollout tests and
+an actual local rollout run. These are historical checks of that exact version,
+not a claim that the new M2 entry existed in the older artifact.
+
+Both are **source bundles**, not verified current `.crate` releases. The earlier
 GE c80ec325 `.crate` (`da5b30c22c28c9db444a0ca9c214b9441c3b7aebd14c223606298547452189bc`)
 lacks the current `validate_approval_record` API on source inspection; its old
-package acceptance cannot qualify this current consumer. No old-package compile
-or N/N-1 compatibility claim is made. Unfiltered offline metadata initially needed
-uncached non-host `r-efi`; metadata was restricted to the tested Linux target,
-without changing dependencies, downloading packages or claiming other platforms.
+package acceptance cannot qualify this consumer. No N/N-1 or public distribution
+claim is made. Metadata is limited to the tested Linux host without downloading
+non-host dependencies or changing the dependency graph.
 
-Task 5.4 remains unchecked: this proves a bounded independent-source consumer
-combination, not public distribution, a complete release matrix, production
-identity, hosted enforcement or the entire rollout task. Native observations in
-the rollout remain the original retained captures.
+Task 5.4 remains unchecked pending independent scope acceptance. This aligned
+local source/package combination does not establish production identity, hosted
+required-check enforcement or atomic future authority across external providers.
+Native observations remain the original retained captures.
