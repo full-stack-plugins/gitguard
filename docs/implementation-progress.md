@@ -78,3 +78,9 @@ Slice 2 implemented pending review:
 TDD: projection unsupported scaffold RED 0/2 -> GREEN2/2; CLI scaffold RED3 failed/1 passed -> GREEN4/4; executor accepting scaffold RED0/2 -> GREEN2/2 in both default and feature-enabled builds; oversized 129-rule contract RED accepted -> rejected GREEN; final error coverage RED retained Complete -> cleared Partial GREEN. Logs under /workspace/guard-implementation-ledger/gitguard-slice2-*.log. Engine's AttemptOutput.coverage was added during this slice; initial executor test compile failure is recorded separately from the subsequent genuine behavioral RED.
 
 Final verification: `cargo test` 32 integration tests passed, zero failures (empty unit/bin/doc suites); feature-enabled executor tests 2/2; `cargo clippy --all-targets --all-features -- -D warnings`, `cargo fmt --check`, `git diff --check` passed; strict OpenSpec passed 1/1 with zero issues. Source dependency GuardEngine observed at 1498970670b4b364430b091836c23cb37abc75f8. No new task checkbox updates before root review.
+
+## Slice 2 independent acceptance registration
+
+Root authorized recording complete tasks 3.1, 3.2 and 4.1 after independent review of be31e5d. Review evidence: /workspace/guard-implementation-ledger/gitguard-slice2-review.md — no concrete P1/P2; 32 integration tests and two feature-enabled denial tests independently passed, plus adversarial actual-Git scope substitution and forged ChangeSet probe.
+
+Exactly 12/28 tasks now accepted: 1.3, 1.5, 1.6, 2.1–2.6, 3.1, 3.2, 4.1. Acceptance retains the local advisory / engine integration / denied-executor limits. Previously partial 1.1, 1.2 and 1.4 remain unchecked; no authenticated provider, protected admission, baseline support or operational writer is thereby accepted.
