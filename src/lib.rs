@@ -42,3 +42,5 @@ pub mod subject;
 pub mod worktree;
 #[path = "../adapters/codegraph/mod.rs"]
 pub mod codegraph;
+#[path = "../adapters/gitlab/mod.rs"]
+pub mod gitlab;
