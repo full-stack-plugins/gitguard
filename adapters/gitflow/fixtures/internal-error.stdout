@@ -1,0 +1,1 @@
+{"schema_version": "1.0.0", "action": "check", "decision": "error", "reasons": [{"code": "internal_error", "message": "处理失败，不能采用不完整结果。"}], "next_actions": []}

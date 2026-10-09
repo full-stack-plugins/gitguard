@@ -30,6 +30,8 @@ pub mod cli;
 pub mod conflicts;
 pub mod evidence;
 pub mod execution;
+#[path = "../adapters/gitflow/mod.rs"]
+pub mod gitflow;
 #[path = "../adapters/mcp/mod.rs"]
 pub mod mcp;
 pub mod preflight;
