@@ -364,6 +364,62 @@ fn late_completion(m1: &Group, m2: &Group) -> bool {
     assert_eq!(store.history(&target).unwrap().len(), 2);
     true
 }
+/// The same reviewed M2 corpus and local writer, without replaying the four-group matrix.
+/// Kept separate from the older Gitflow candidate/profile used by local_rollout.
+pub fn required_rollout() -> Result<Value, String> {
+    if !cfg!(feature = "privileged-execution") {
+        return Err("required rollout fixture requires privileged-execution".into());
+    }
+    let corpus = Path::new(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/fixtures/end-to-end/joint"
+    ));
+    verify_corpus(corpus);
+    let fixture = tempfile::Builder::new()
+        .prefix(".required-rollout-")
+        .tempdir_in(std::env::current_dir().map_err(|_| "working directory unavailable")?)
+        .map_err(|_| "fixture unavailable")?;
+    let repository = fixture.path().join("repository");
+    git(
+        fixture.path(),
+        &[
+            "clone",
+            "-q",
+            corpus.join("source.bundle").to_str().unwrap(),
+            repository.to_str().unwrap(),
+        ],
+    );
+    let manifest = value(corpus.join("producer-manifest.json"));
+    let worktree = fixture.path().join("worktree-M2");
+    git(
+        &repository,
+        &[
+            "worktree",
+            "add",
+            "--quiet",
+            "--detach",
+            worktree.to_str().unwrap(),
+            manifest["profiles"]["M2"]["candidate"].as_str().unwrap(),
+        ],
+    );
+    let repo = Repository::discover(&worktree, "cross-guard-repo").unwrap();
+    let group = Group::load(corpus.join("M2"), repo, "M2");
+    let before = tree_digest(&repository);
+    let worktree_before = tree_digest(&worktree);
+    let mut result = local_execution(fixture.path(), &repository, &group);
+    assert_eq!(before, tree_digest(&repository));
+    assert_eq!(worktree_before, tree_digest(&worktree));
+    verify_corpus(corpus);
+    result["profile"] = json!("gitguard.required-specialist-local-rollout/M2");
+    result["transport_sha256"] = json!(TRANSPORT_SHA);
+    result["source_unchanged"] = json!(true);
+    result["original_artifacts_unchanged"] = json!(true);
+    result["eligibility_time_boundary"] = json!(
+        "fresh consumption before each apply; not atomic future authority across external providers"
+    );
+    Ok(result)
+}
+
 pub fn run() -> Result<Value, String> {
     if !cfg!(feature = "privileged-execution") {
         return Err("joint mutation fixture requires explicit privileged-execution build".into());
@@ -553,7 +609,7 @@ fn local_execution(fixture: &Path, source: &Path, group: &Group) -> Value {
 mod local_write {
     use super::*;
     use gitguard::execution::{
-        apply::{ApplyContext, ApplyError, apply},
+        apply::{ApplyContext, ApplyError, LocalCasReceipt, apply},
         grant::*,
         intent::IntentStore,
         platform_write::ProtectedBareTarget,
@@ -583,11 +639,12 @@ mod local_write {
             "fixture-authority"
         }
         fn authenticate(&self, reference: &str) -> Result<OperationGrant, PortError> {
+            let call = self.calls.fetch_add(1, Ordering::SeqCst);
             if reference != "fixture:grant" {
                 return Err(PortError::Untrusted);
             }
             let mut grant = self.record.clone();
-            if self.revoke_after_claim && self.calls.fetch_add(1, Ordering::SeqCst) > 0 {
+            if self.revoke_after_claim && call > 0 {
                 grant.revoked = true;
             }
             Ok(grant)
@@ -641,7 +698,40 @@ mod local_write {
         (GrantSession::new(expected), authority)
     }
 
+    #[derive(Debug, PartialEq, Eq)]
+    enum DispatchError {
+        RequiredSpecialists,
+        Apply(ApplyError),
+    }
+    // Private finite controller composition, not a transferable authorization token.
+    // Each real dispatch rechecks the frozen full required set before entering grant/apply.
+    fn checked_apply(
+        context: &ApplyContext<'_>,
+        target: &ProtectedBareTarget,
+        group: &Group,
+        required: &PreparedSpecialistConsumption,
+        envelopes: &BTreeMap<String, GuardRunEnvelope>,
+        provider: &dyn AuthorityProvider,
+    ) -> Result<LocalCasReceipt, DispatchError> {
+        let assessment = required
+            .consume(
+                context.repository,
+                context.candidate,
+                envelopes,
+                &group.bytes,
+                provider,
+                NOW,
+                None,
+            )
+            .map_err(|_| DispatchError::RequiredSpecialists)?;
+        if !assessment.eligible() {
+            return Err(DispatchError::RequiredSpecialists);
+        }
+        apply(context, target).map_err(DispatchError::Apply)
+    }
+
     pub(super) fn run(fixture: &Path, source: &Path, group: &Group) -> Value {
+        let required = group.prepare(None);
         let candidate = &group.candidate;
         let repo = &group.repo;
         let bare = fixture.join("local-target.git");
@@ -686,22 +776,104 @@ mod local_write {
             session: &publish,
             authority: &authority,
             clock: &Clock,
-            grant_reference: "fixture:FG-ALLOW-is-not-a-grant",
+            grant_reference: "fixture:grant",
             intents: &intents,
             cancel: &cancel,
         };
+        // All negative checks hit this actual dispatch before a grant call, intent or ref write.
+        let initial_history = std::fs::read(intent_root.join("intent.json")).unwrap();
+        let initial_target = tree_digest(&bare);
+        let mut refusals = BTreeMap::new();
+        for case in [
+            "missing_required",
+            "producer_revoked",
+            "producer_expired",
+            "baseline_revoked",
+            "adapter_rollback",
+        ] {
+            let mut provider = group.authority.clone();
+            let mut envelopes = group.envelopes.clone();
+            match case {
+                "missing_required" => {
+                    envelopes.remove("testguard");
+                }
+                "producer_revoked" => {
+                    provider
+                        .producers
+                        .values_mut()
+                        .next()
+                        .unwrap()
+                        .validity
+                        .revoked = true
+                }
+                "producer_expired" => {
+                    provider
+                        .producers
+                        .values_mut()
+                        .next()
+                        .unwrap()
+                        .validity
+                        .expires_at = NOW
+                }
+                "baseline_revoked" => {
+                    provider
+                        .approvals
+                        .get_mut("fixture:gg-baseline-specguard")
+                        .unwrap()
+                        .validity
+                        .revoked = true
+                }
+                "adapter_rollback" => {
+                    envelopes.remove("codeguard");
+                }
+                _ => unreachable!(),
+            }
+            assert!(
+                matches!(
+                    checked_apply(&context, &target, group, &required, &envelopes, &provider),
+                    Err(DispatchError::RequiredSpecialists)
+                ),
+                "{case}"
+            );
+            assert_eq!(authority.calls.load(Ordering::SeqCst), 0);
+            assert_eq!(initial_target, tree_digest(&bare));
+            assert_eq!(
+                initial_history,
+                std::fs::read(intent_root.join("intent.json")).unwrap()
+            );
+            refusals.insert(
+                case,
+                json!({"outcome":"RequiredSpecialists", "grant_calls":0,
+                "intent_unchanged":true, "target_unchanged":true, "required_count":DOMAINS.len()}),
+            );
+        }
         // A valid target and frozen request still require a separately authenticated operation grant.
+        context.grant_reference = "fixture:FG-ALLOW-is-not-a-grant";
         let before = tree_digest(&bare);
         assert!(matches!(
-            apply(&context, &target),
-            Err(ApplyError::Authority)
+            checked_apply(
+                &context,
+                &target,
+                group,
+                &required,
+                &group.envelopes,
+                &group.authority
+            ),
+            Err(DispatchError::Apply(ApplyError::Authority))
         ));
         assert_eq!(before, tree_digest(&bare));
         context.grant_reference = "fixture:grant";
         cancel.store(true, Ordering::SeqCst);
         assert!(matches!(
-            apply(&context, &target),
-            Err(ApplyError::Cancelled)
+            checked_apply(
+                &context,
+                &target,
+                group,
+                &required,
+                &group.envelopes,
+                &group.authority
+            ),
+            Err(DispatchError::Apply(ApplyError::Cancelled))
         ));
         assert_eq!(before, tree_digest(&bare));
         assert_eq!(
@@ -710,7 +882,15 @@ mod local_write {
         );
         // Explicit fixture authorization is separate from all eligibility/gate results.
         cancel.store(false, Ordering::SeqCst);
-        let receipt = apply(&context, &target).unwrap();
+        let receipt = checked_apply(
+            &context,
+            &target,
+            group,
+            &required,
+            &group.envelopes,
+            &group.authority,
+        )
+        .unwrap();
         assert_eq!(
             git(&bare, &["rev-parse", "refs/heads/checked"]),
             candidate.candidate_oid()
@@ -719,8 +899,15 @@ mod local_write {
         context.session = &uncertain;
         context.authority = &revoked;
         assert!(matches!(
-            apply(&context, &target),
-            Err(ApplyError::RecoveryRequired)
+            checked_apply(
+                &context,
+                &target,
+                group,
+                &required,
+                &group.envelopes,
+                &group.authority
+            ),
+            Err(DispatchError::Apply(ApplyError::RecoveryRequired))
         ));
         assert_eq!(
             git(&bare, &["rev-parse", "refs/heads/unknown"]),
@@ -730,14 +917,17 @@ mod local_write {
         let disabled = ExecutionConfig::default();
         context.config = &disabled;
         assert!(matches!(
-            apply(&context, &target),
-            Err(ApplyError::Disabled)
+            checked_apply(
+                &context,
+                &target,
+                group,
+                &required,
+                &group.envelopes,
+                &group.authority
+            ),
+            Err(DispatchError::Apply(ApplyError::Disabled))
         ));
-        assert!(
-            group
-                .consume(&group.prepare(None), &group.authority, NOW)
-                .eligible()
-        );
+        assert!(group.consume(&required, &group.authority, NOW).eligible());
         drop(intents);
         let reopened = IntentStore::open(&intent_root).unwrap();
         assert!(matches!(
@@ -752,6 +942,6 @@ mod local_write {
             preserved,
             std::fs::read(intent_root.join("intent.json")).unwrap()
         );
-        json!({"candidate":candidate.candidate_oid(),"target_before":candidate.base_oid(),"fg_allow_and_consumption_without_operation_grant":"Authority error; target bytes unchanged","cancelled_ref_unchanged":true,"cancelled_operation":"NotRecorded","explicit_fixture_grant_only_write":true,"operation_id":receipt.operation_id(),"request_digest":receipt.request_digest(),"actual_target":git(&bare,&["rev-parse","refs/heads/checked"]),"executor_rollback":"Disabled; read-only consumption still eligible","reopened_applied":true,"reopened_unknown":"RecoveryRequired","history_unchanged":true,"production_authority":false})
+        json!({"required_count":DOMAINS.len(),"required_scopes":group.policies.iter().map(|(id,p)|(id,&p.required_scopes)).collect::<BTreeMap<_,_>>(),"rejected_before_grant":refusals.len(),"required_check_refusals":refusals,"adapter_rollback_required_set_preserved":true,"technical_specguard":group.envelopes["specguard"].decision,"candidate":candidate.candidate_oid(),"target_before":candidate.base_oid(),"fg_allow_and_consumption_without_operation_grant":"Authority error; target bytes unchanged","cancelled_ref_unchanged":true,"cancelled_operation":"NotRecorded","explicit_fixture_grant_only_write":true,"operation_id":receipt.operation_id(),"request_digest":receipt.request_digest(),"actual_target":git(&bare,&["rev-parse","refs/heads/checked"]),"executor_rollback":"Disabled; read-only consumption still eligible","reopened_applied":true,"reopened_unknown":"RecoveryRequired","history_unchanged":true,"production_authority":false})
     }
 }

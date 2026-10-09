@@ -1,5 +1,13 @@
 //! Self-contained local rollout fixture; accepts no user repository or remote destination.
 //! Captured Gitflow observations and fixture grant authority are not production certification.
+#[allow(dead_code)]
+#[path = "joint_consumption.rs"]
+mod joint;
+
+pub fn required_specialist_rollout() -> Result<Value, String> {
+    joint::required_rollout()
+}
+
 use gitguard::{
     Repository,
     candidate::{CandidateRequest, CandidateSnapshot},
@@ -403,8 +411,11 @@ pub fn run() -> Result<Value, String> {
     assert_eq!(history_after, preserved);
     let after = source_digest(&source);
     assert_eq!(before, after);
+    // The required-specialist profile has its own exact M2 candidate. Never attach
+    // that retained evidence to the unrelated Gitflow source/candidate above.
+    let required_specialist_rollout = required_specialist_rollout()?;
     Ok(
-        json!({ "profile": "isolated-local-rollout-fixture", "production_authority": false,
+        json!({ "required_specialist_rollout":required_specialist_rollout, "profile": "isolated-local-rollout-fixture", "production_authority": false,
         "native_observation": "pinned captured Gitflow output, not a live hosted check", "candidate_oid": candidate.candidate_oid(),
         "native_profile": PROFILE, "source_before": before, "source_after": after, "source_unchanged": before == after,
         "advisory": {"decision": bundle.envelope.decision, "write": "Disabled"},

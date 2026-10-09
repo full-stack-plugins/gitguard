@@ -22,3 +22,25 @@ fn local_rollout_preserves_history_and_stops_unresolved_or_disabled_writes() {
     assert_eq!(report["unknown_after_rollback"], "RecoveryRequired");
     assert_eq!(report["production_authority"], false);
 }
+
+#[test]
+fn required_specialists_guard_actual_m2_rollout_dispatch() {
+    if !cfg!(feature = "privileged-execution") {
+        return;
+    }
+    let required = rollout::required_specialist_rollout().unwrap();
+    assert_eq!(required["required_count"], 5);
+    assert_eq!(required["rejected_before_grant"], 5);
+    assert_eq!(required["candidate"], required["actual_target"]);
+    assert_eq!(required["adapter_rollback_required_set_preserved"], true);
+    assert_eq!(
+        required["executor_rollback"],
+        "Disabled; read-only consumption still eligible"
+    );
+    assert_eq!(required["history_unchanged"], true);
+    let gitflow: serde_json::Value =
+        serde_json::from_str(include_str!("../adapters/gitflow/fixtures/capture.json")).unwrap();
+    assert_ne!(required["candidate"], gitflow["candidate_oid"]);
+    assert_eq!(required["technical_specguard"], "REQUIRE_APPROVAL");
+    println!("{}", serde_json::to_string_pretty(&required).unwrap());
+}
