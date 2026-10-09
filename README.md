@@ -4,7 +4,7 @@
 
 **Read-only Git candidate observation, frozen change scope and candidate-bound evidence.**
 
-This implementation branch contains a Rust library, a `gitguard check` CLI, schemas and real Git tests. It is no longer documentation-only. **25/28 OpenSpec tasks are independently accepted for their documented local profiles**; hosted platform/extension adapters and remaining rollout integration are still pending. See [implementation progress](docs/implementation-progress.md) and [tasks](openspec/changes/add-candidate-bound-git-governance/tasks.md) for precise acceptance boundaries.
+This implementation branch contains a Rust library, a `gitguard check` CLI, schemas and real Git tests. It is no longer documentation-only. **26/28 OpenSpec tasks are independently accepted for their documented local profiles**; hosted platform/extension adapters are still pending. See [implementation progress](docs/implementation-progress.md) and [tasks](openspec/changes/add-candidate-bound-git-governance/tasks.md) for precise acceptance boundaries.
 
 ## Implemented local capabilities
 
@@ -42,7 +42,7 @@ Native `guard.partme.ai/v1alpha1` remains unchanged: strict GuardContract/GuardF
 
 The official gitflow-plugin was inspected and exercised read-only at a pinned commit: [compatibility survey](adapters/gitflow/compatibility.md). Its exit semantics differ from GitGuard. No opt-in adapter or replacement claim is enabled; native interfaces are unchanged.
 
-Remaining original tasks are GitHub protected integration (5.1), GitLab/CodeGraph extensions (5.2) and remaining rollout integration (5.4). Production provider deployment, hosted protection and independent public release remain explicit deployment boundaries. [Architecture](docs/architecture.md) and [technical design](docs/technical-design.md) describe this broader target; their future capabilities are not current product claims. [Integration contract](docs/integration-contract.md) and [dependency roadmap](openspec/guard-roadmap.md) explain shared boundaries.
+Remaining original tasks are GitHub protected integration (5.1) and GitLab/CodeGraph extensions (5.2). Production provider deployment, hosted protection and independent public release remain explicit deployment boundaries. [Architecture](docs/architecture.md) and [technical design](docs/technical-design.md) describe this broader target; their future capabilities are not current product claims. [Integration contract](docs/integration-contract.md) and [dependency roadmap](openspec/guard-roadmap.md) explain shared boundaries.
 
 Versioned local read-only adapters are available through `gitguard api` and
 `gitguard mcp-stdio`; the original `gitguard check` remains available. See the

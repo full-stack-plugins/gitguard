@@ -257,3 +257,8 @@ The existing local rollout example now calls a separate exact-M2 profile reusing
 ### Task 5.4 package aligned with required-check caller — pending review
 
 Updated the existing preparer's consumer pin from retained df8d5cc to fixed `85a9743023de788d91a370601ad2b7d5a649517a`; GE remains b0e4b445. A new independent source bundle preserves the old artifact unchanged. Inside the new package, the focused M2 rollout test passed, metadata resolves only bundled GG/GE, and 577+251 files match original archives except the explicit manifest path. Archive SHA256 `076d37b1d48fe214139f433348bf3ce5c267ce201fe7762a50e50ddb5784d643`; ledger `gitguard-package-85a9743-verification.json` records the exact source hashes and scope. No old full matrix/native rerun, current crate compatibility or public release claim. Task 5.4 remains unchecked, total 25/28.
+
+
+### Independently accepted original task 5.4 — 26/28
+
+Root accepted the local scope after fixed `85a9743023de788d91a370601ad2b7d5a649517a` required-check dispatch review and separate `2dd5c204120620c5c35f269089401b75ac0829ad` preparer/package review, combined with the earlier actual advisory/shadow/opt-in and independent adapter/executor rollback evidence. The new package contains the 85a9743 caller; the retained df8 package does not. Independent reports: ledger `gitguard-required-rollout-independent-review.md`, `gitguard-package-85a9743-independent-review.md` and its verification JSON. No production crate, hosted enforcement or atomic future authority across providers is implied. Only tasks 5.1 and 5.2 remain unchecked; GitGuard is 26/28.

@@ -4,7 +4,7 @@
 
 **只读 Git 候选观察、冻结变更范围与绑定精确候选的证据。**
 
-当前实现分支已有 Rust 库、`gitguard check` CLI、Schema 和真实 Git 测试，不再是纯文档项目。**25/28 个 OpenSpec 任务已按明确的本地 profile 独立验收**；新增工作仍按记录等待评审。准确边界见[实施进度](docs/implementation-progress.md)与[任务](openspec/changes/add-candidate-bound-git-governance/tasks.md)。
+当前实现分支已有 Rust 库、`gitguard check` CLI、Schema 和真实 Git 测试，不再是纯文档项目。**26/28 个 OpenSpec 任务已按明确的本地 profile 独立验收**；新增工作仍按记录等待评审。准确边界见[实施进度](docs/implementation-progress.md)与[任务](openspec/changes/add-candidate-bound-git-governance/tasks.md)。
 
 ## 已实现的本地能力
 
@@ -42,4 +42,4 @@ cargo run --locked --example export_evidence -- /absolute/path/to/new-golden-dir
 
 已对固定提交的官方 gitflow-plugin 做源码及只读实际调查，见[兼容性记录](adapters/gitflow/compatibility.md)。其退出语义不同；尚未启用 opt-in adapter 或宣称替代，原生接口未改动。
 
-原任务剩余 GitHub 受保护集成（5.1）、GitLab/CodeGraph 扩展（5.2）及 rollout 剩余集成（5.4）。生产 provider 部署、托管保护及独立公开发行仍有明确部署边界。[架构](docs/architecture.md)和[技术设计](docs/technical-design.md)包含这些长期目标，未来能力不代表现有实现。[集成契约](docs/integration-contract.md)与[依赖路线图](openspec/guard-roadmap.md)说明跨仓边界。
+原任务剩余 GitHub 受保护集成（5.1）及 GitLab/CodeGraph 扩展（5.2）。生产 provider 部署、托管保护及独立公开发行仍有明确部署边界。[架构](docs/architecture.md)和[技术设计](docs/technical-design.md)包含这些长期目标，未来能力不代表现有实现。[集成契约](docs/integration-contract.md)与[依赖路线图](openspec/guard-roadmap.md)说明跨仓边界。

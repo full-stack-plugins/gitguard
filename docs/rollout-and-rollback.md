@@ -21,11 +21,11 @@ The exercise performs these actual stages:
 
 `tests/rollout_rollback.rs` runs the same working composition and asserts the observed results. The example's private comparison/selection functions are demonstration-controller logic; there is no new public permit format, production rollout flag, arbitrary approval Boolean or automatic enforcement activation. Existing callers remain responsible for protecting their controller configuration and selecting an authenticated authority.
 
-Remaining task 5.4 work is specific: integrate the chosen deployment's protected rollout ownership and native differential adjudications, then verify its actual enforcement/release combination. Existing local GuardEngine package verification can be reused; it is not a blocker to this composition. Public distribution and hosted required-check behavior are not established by this example. Task 5.4 stays unchecked until the remaining scope is independently accepted.
+Original task 5.4 is independently accepted for the local rollout, required-check preservation and aligned fixed-source package profile. Remaining deployment work is separate: establish protected hosted rollout ownership, deployment-specific native differential adjudications and actual hosted enforcement. Public distribution and hosted required-check behavior are not established by the local example.
 
 Task 3.3's specialist verification port is independently accepted at `8b87946f`; task 5.5's four-group real producer consumption is independently accepted at `5207e9e`. Their retained captures and frozen expectations are now reused below. This does not add a production identity provider or make domain baselines interchangeable with the Git candidate baseline.
 
-## Required specialist checks inside the local write caller (pending review)
+## Accepted required specialist checks inside the local write caller
 
 `local_rollout::run` also invokes `required_specialist_rollout`, which reuses the existing joint consumer's M2 group and private local writer. This second report has its own exact candidate, source bundle and five required domains. It is separate from the older Gitflow candidate/profile above: captured M2 evidence is never relabelled as Gitflow evidence. The smaller callable fixture restores only M2; it does not replay the four-group negative matrix or rerun any producer.
 
@@ -33,7 +33,7 @@ Task 3.3's specialist verification port is independently accepted at `8b87946f`;
 
 Five actual dispatch negatives use otherwise valid operation authority: missing TestGuard, revoked producer, expired producer, revoked SpecGuard baseline, and disabled CodeGuard adapter. Each returns RequiredSpecialists with zero grant calls and identical full target/intent bytes. Disabling an adapter does not reduce the frozen five-domain requirement. Restoring valid evidence still does not make a fake FG-ALLOW reference an operation grant. Valid independent fixture authorization then performs the actual M2 local CAS. Cancellation and revoked operation grants retain their existing behavior; executor rollback still permits read-only specialist checks and preserves reopened Applied/RecoveryRequired journal history. SpecGuard's original REQUIRE_APPROVAL remains unchanged.
 
-Run only this new slice with `cargo test --locked --offline --features privileged-execution --test rollout_rollback required_specialists_guard_actual_m2_rollout_dispatch -- --exact --nocapture`. The JSON records exact candidate, actual target, operation/request digest, all required scopes and five denied-dispatch observations; source/corpus hashes are checked before/after. The retained transport pin is unchanged. Local fixture authority is not production identity, and no hosted write, public release or new phase controller is introduced. Task 5.4 remains unchecked pending independent acceptance; the independently accepted source package below remains its historical fixed source, not a rebuilt package containing this increment.
+Run only this new slice with `cargo test --locked --offline --features privileged-execution --test rollout_rollback required_specialists_guard_actual_m2_rollout_dispatch -- --exact --nocapture`. The JSON records exact candidate, actual target, operation/request digest, all required scopes and five denied-dispatch observations; source/corpus hashes are checked before/after. The retained transport pin is unchanged. Local fixture authority is not production identity, and no hosted write, public release or new phase controller is introduced. The df8d5cc historical package does not contain this increment; the separately retained 85a9743 package below does. Original 5.4 is accepted for this explicit local profile.
 
 ## Fixed source-bundle compatibility slice
 
@@ -92,7 +92,7 @@ package acceptance cannot qualify this consumer. No N/N-1 or public distribution
 claim is made. Metadata is limited to the tested Linux host without downloading
 non-host dependencies or changing the dependency graph.
 
-Task 5.4 remains unchecked pending independent scope acceptance. This aligned
+Task 5.4 is accepted after independent fixed-source and package review. See ledger `gitguard-required-rollout-independent-review.md` and `gitguard-package-85a9743-independent-review.md`. This aligned
 local source/package combination does not establish production identity, hosted
 required-check enforcement or atomic future authority across external providers.
 Native observations remain the original retained captures.
