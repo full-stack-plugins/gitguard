@@ -1,4 +1,4 @@
-# Partme GitGuard
+# GitGuard
 
 [English](README.md) · [简体中文](README.zh-CN.md)
 
@@ -48,4 +48,4 @@ gitguard merge preview --target main --head HEAD
 
 GitGuard will initially adapt and validate existing GitFlow policy behavior, then migrate rule ownership only after differential tests. Never run force-push, destructive resets, branch deletion, or hidden fetches during read-only checks.
 
-See [Partme Guard repositories](https://github.com/orgs/full-stack-plugins/repositories).
+See [GitHub repositories](https://github.com/orgs/full-stack-plugins/repositories).
