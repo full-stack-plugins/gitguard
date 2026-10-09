@@ -1,4 +1,4 @@
-# Partme GitGuard — Git 守卫
+# GitGuard — Git 守卫
 
 [English](README.md) · [简体中文](README.zh-CN.md)
 
