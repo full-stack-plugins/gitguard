@@ -4,7 +4,7 @@
 
 **Read-only Git candidate observation, frozen change scope and candidate-bound evidence.**
 
-This implementation branch contains a Rust library, a `gitguard check` CLI, schemas and real Git tests. It is no longer documentation-only. **13/28 OpenSpec tasks are independently accepted for their documented local profiles**; newer work remains pending review. See [implementation progress](docs/implementation-progress.md) and [tasks](openspec/changes/add-candidate-bound-git-governance/tasks.md) for precise acceptance boundaries.
+This implementation branch contains a Rust library, a `gitguard check` CLI, schemas and real Git tests. It is no longer documentation-only. **25/28 OpenSpec tasks are independently accepted for their documented local profiles**; hosted platform/extension adapters and remaining rollout integration are still pending. See [implementation progress](docs/implementation-progress.md) and [tasks](openspec/changes/add-candidate-bound-git-governance/tasks.md) for precise acceptance boundaries.
 
 ## Implemented local capabilities
 
@@ -13,7 +13,7 @@ This implementation branch contains a Rust library, a `gitguard check` CLI, sche
 - Actual GuardEngine projection, bounded evaluation and artifact verification. `gitguard check` reads one strict JSON request on stdin and writes the current bundle to stdout: 0 ALLOW, 2 BLOCK, 3 REQUIRE_APPROVAL, 4 failure. There is no `--report` or mutable-ref convenience command.
 - Explicit trust-provider ports, full-key-bound consumption and process-local append-only history/CAS. A separate restricted Linux local-file backend provides tested restart and multiprocess behavior; its review status is recorded separately. Neither store turns historical eligibility into current authority.
 
-The semantic graph and authority implementations under tests are labelled fixtures. **No production authority provider, approved non-null baseline, protected hosted admission, MCP server, remote push/merge or operation-intent executor exists.** Every writer operation remains denied, including feature-enabled builds. ALLOW is a technical result, not merge permission. Approval cannot repair partial/error evidence or rewrite REQUIRE_APPROVAL.
+The semantic graph and authority implementations under tests are labelled fixtures. **No production authority provider or protected hosted admission/remote writer is supplied.** Versioned read-only MCP, specialist baseline/approval verification ports and the separately authorized private local executor are implemented; execution remains disabled by default. Explicit local reftable receipts support Linux x86_64/Git 2.47.3/SHA-1 process-crash recovery; default files without acknowledgement remain unknown. This is not power-loss durability or a hosted receipt claim. See [intent and recovery boundaries](docs/operation-intents.md). ALLOW is a technical result, not merge permission. Approval cannot repair partial/error evidence or rewrite REQUIRE_APPROVAL.
 
 Observation currently requires controlled local checkouts; hostile concurrent filesystem replacement and full OS resource containment are not proven. Repository labels are assigned by the caller, never authenticated from origin URLs. [Observation limits](docs/git-observation-adr.md), [history limits](docs/local-evidence-store-adr.md) and [Linux persistence limits](docs/durable-history-adr.md) are part of the supported contract.
 
@@ -42,7 +42,7 @@ Native `guard.partme.ai/v1alpha1` remains unchanged: strict GuardContract/GuardF
 
 The official gitflow-plugin was inspected and exercised read-only at a pinned commit: [compatibility survey](adapters/gitflow/compatibility.md). Its exit semantics differ from GitGuard. No opt-in adapter or replacement claim is enabled; native interfaces are unchanged.
 
-Remaining work includes protected baseline provenance, production provider integration, further process/filesystem hardening, full Gitflow differential adaptation, versioned MCP/API, hosted protections and separately reviewed write authorization/recovery. [Architecture](docs/architecture.md) and [technical design](docs/technical-design.md) describe this broader target; their future capabilities are not current product claims. [Integration contract](docs/integration-contract.md) and [dependency roadmap](openspec/guard-roadmap.md) explain shared boundaries.
+Remaining original tasks are GitHub protected integration (5.1), GitLab/CodeGraph extensions (5.2) and remaining rollout integration (5.4). Production provider deployment, hosted protection and independent public release remain explicit deployment boundaries. [Architecture](docs/architecture.md) and [technical design](docs/technical-design.md) describe this broader target; their future capabilities are not current product claims. [Integration contract](docs/integration-contract.md) and [dependency roadmap](openspec/guard-roadmap.md) explain shared boundaries.
 
 Versioned local read-only adapters are available through `gitguard api` and
 `gitguard mcp-stdio`; the original `gitguard check` remains available. See the
