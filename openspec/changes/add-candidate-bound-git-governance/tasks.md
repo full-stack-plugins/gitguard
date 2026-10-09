@@ -33,21 +33,21 @@
 
 - [ ] 1.1 在 `src/git/repository.rs`、`src/subject.rs` 与随切片引入的 `Cargo.toml` 实现稳定 repo/root/object-format 发现，固定 Rust/依赖版本并记录能力 ADR；`tests/repository.rs` 覆盖坏根、common Git dir、SHA-1/SHA-256 和未知算法，确认不以 origin URL 认证身份。（Requirement: Immutable repository and subject binding）
 - [ ] 1.2 在 `src/git/runner.rs` 冻结 argv、环境/config 隔离、NUL 输出、时间/字节/进程树限制；`tests/runner_security.rs` 用恶意 helper/diff/hook/alternate、超时及令牌诊断 fixtures，断言无执行入口、无隐藏 fetch、无泄密及无 refs/index/worktree 修改。（Requirement: Bounded Git observation and semantic uncertainty）
-- [ ] 1.3 在 `src/subject.rs` 实现 `FrozenSubject` 的 worktree/index/commit/tree-preview 区分、OID 实物校验和 snapshot digest；`tests/subjects.rs` 断言 dirty HEAD 不得充当权威候选、missing object 不生成 envelope、ref 运行中变化不被重新解释。（Requirement: Immutable repository and subject binding）
+- [x] 1.3 在 `src/subject.rs` 实现 `FrozenSubject` 的 worktree/index/commit/tree-preview 区分、OID 实物校验和 snapshot digest；`tests/subjects.rs` 断言 dirty HEAD 不得充当权威候选、missing object 不生成 envelope、ref 运行中变化不被重新解释。（Requirement: Immutable repository and subject binding）
 - [ ] 1.4 在 `src/scope.rs` 与 `schemas/task-scope.schema.json` 冻结受保护 TaskScope、基线 immutable ref/digest 及 advisory 信任标记；`tests/scope_policy.rs` 验证候选删除/弱化策略不改变必查义务，Markdown accepted 不构成批准。（Requirement: Protected actual change scope）
-- [ ] 1.5 在 `src/git/diff.rs` 实现 `scan_scope` 对新增/删除/rename 两端/mode/symlink/submodule 的字节安全解析并决定路径编码/大小写 ADR；`tests/diff_scope.rs` 的越界 rename、非 UTF-8、子模块缺内容必须分别报违规或 missing coverage。（Requirement: Protected actual change scope）
-- [ ] 1.6 在 `src/preflight.rs` 汇总只读 `CandidateRequest -> PreflightResult`，在 `tests/read_only_boundary.rs` 禁用 FlowGuard/写模块且使用无认证本地范围运行，确认返回 advisory 结果与冻结范围且用户 refs/index/worktree hash 不变。（Requirement: Read-only candidate dependency boundary）
+- [x] 1.5 在 `src/git/diff.rs` 实现 `scan_scope` 对新增/删除/rename 两端/mode/symlink/submodule 的字节安全解析并决定路径编码/大小写 ADR；`tests/diff_scope.rs` 的越界 rename、非 UTF-8、子模块缺内容必须分别报违规或 missing coverage。（Requirement: Protected actual change scope）
+- [x] 1.6 在 `src/preflight.rs` 汇总只读 `CandidateRequest -> PreflightResult`，在 `tests/read_only_boundary.rs` 禁用 FlowGuard/写模块且使用无认证本地范围运行，确认返回 advisory 结果与冻结范围且用户 refs/index/worktree hash 不变。（Requirement: Read-only candidate dependency boundary）
 
 ## 2. Immutable candidate and parallel scope — GG-CANDIDATE（G0/G2 只读切片）
 
 **Interfaces:** `prepare_candidate(FrozenSubject, CandidateRequest) -> CandidateSnapshot`；`register_binding(TaskScope, RepositoryRef) -> WorktreeBinding`；`analyze_impacts([CandidateSnapshot], GraphCoverage) -> ConflictObservation`。仅临时对象库可写；完整 envelope 留到组3。
 
-- [ ] 2.1 在 `src/candidate.rs` 实现独立临时对象存储候选构造，冻结初始支持的 merge 方法/Git 功能探测 ADR；`tests/candidate_objects.rs` 覆盖 conflict、tree-preview、不同 parents 同 tree，断言只有真实候选 commit 能被准入绑定且原仓库不变。（Requirement: Exact queue candidate and parallel isolation）
-- [ ] 2.2 在 `src/candidate.rs`、`adapters/queue_input.rs` 实现已解析队列事件输入端口与 candidate/base/group/member 固定，认证作为外部端口要求；`tests/queue_bindings.rs` 用 synthetic merge-group OID 重排组/推进 base，断言 PR-head 证据不满足新对象，未认证输入仅 advisory。（Requirement: Exact queue candidate and parallel isolation）
-- [ ] 2.3 在 `src/worktree.rs` 实现 task/requirement/worktree 映射、唯一 ID、租约与目录复用规则；`tests/parallel_worktrees.rs` 用两个需求/两个 worktree 并发取消与复用，断言另一索引/输出不变且清理不删共享 ref。（Requirement: Exact queue candidate and parallel isolation）
-- [ ] 2.4 在 `src/conflicts.rs` 冻结 provider/consumer/API/schema/事件的 `ConflictObservation` 和 required/advisory coverage，先提供 fixture 图谱端口；`tests/semantic_uncertainty.rs` 断言跨文件共享 API 报风险、缺索引保留 unknown、必需范围缺失不满足检查。（Requirement: Bounded Git observation and semantic uncertainty）
-- [ ] 2.5 在 `schemas/candidate-snapshot.schema.json`、`fixtures/candidate/` 固定 repo/task/worktree/排序 requirementIds/candidate/base/group 与 source/baseline 摘要的序列化测试向量；`tests/candidate_schema.rs` 拒绝错误对象类型、重复/未排序 ID 和缺必须摘要，保留无基线 policy 的显式 nullable 规则。（Requirement: Immutable repository and subject binding）
-- [ ] 2.6 在 `tests/gg_candidate_acceptance.rs` 和 `docs/gg-candidate-interface.md` 输出只读阶段契约与实际运行证据：无 FlowGuard/Engine 网络服务/写凭据的双需求、精确 queue candidate、drift/dirty/error fixtures 全通过，向 FG-GATE 提供 GG-CANDIDATE，不把组3–4完成设为先决条件。（Requirement: Read-only candidate dependency boundary）
+- [x] 2.1 在 `src/candidate.rs` 实现独立临时对象存储候选构造，冻结初始支持的 merge 方法/Git 功能探测 ADR；`tests/candidate_objects.rs` 覆盖 conflict、tree-preview、不同 parents 同 tree，断言只有真实候选 commit 能被准入绑定且原仓库不变。（Requirement: Exact queue candidate and parallel isolation）
+- [x] 2.2 在 `src/candidate.rs`、`adapters/queue_input.rs` 实现已解析队列事件输入端口与 candidate/base/group/member 固定，认证作为外部端口要求；`tests/queue_bindings.rs` 用 synthetic merge-group OID 重排组/推进 base，断言 PR-head 证据不满足新对象，未认证输入仅 advisory。（Requirement: Exact queue candidate and parallel isolation）
+- [x] 2.3 在 `src/worktree.rs` 实现 task/requirement/worktree 映射、唯一 ID、租约与目录复用规则；`tests/parallel_worktrees.rs` 用两个需求/两个 worktree 并发取消与复用，断言另一索引/输出不变且清理不删共享 ref。（Requirement: Exact queue candidate and parallel isolation）
+- [x] 2.4 在 `src/conflicts.rs` 冻结 provider/consumer/API/schema/事件的 `ConflictObservation` 和 required/advisory coverage，先提供 fixture 图谱端口；`tests/semantic_uncertainty.rs` 断言跨文件共享 API 报风险、缺索引保留 unknown、必需范围缺失不满足检查。（Requirement: Bounded Git observation and semantic uncertainty）
+- [x] 2.5 在 `schemas/candidate-snapshot.schema.json`、`fixtures/candidate/` 固定 repo/task/worktree/排序 requirementIds/candidate/base/group 与 source/baseline 摘要的序列化测试向量；`tests/candidate_schema.rs` 拒绝错误对象类型、重复/未排序 ID 和缺必须摘要，保留无基线 policy 的显式 nullable 规则。（Requirement: Immutable repository and subject binding）
+- [x] 2.6 在 `tests/gg_candidate_acceptance.rs` 和 `docs/gg-candidate-interface.md` 输出只读阶段契约与实际运行证据：无 FlowGuard/Engine 网络服务/写凭据的双需求、精确 queue candidate、drift/dirty/error fixtures 全通过，向 FG-GATE 提供 GG-CANDIDATE，不把组3–4完成设为先决条件。（Requirement: Read-only candidate dependency boundary）
 
 ## 3. Protocol and trusted evidence — G1/G2；分开协议与可信消费门槛
 
@@ -79,3 +79,7 @@
 - [ ] 5.3 在 `adapters/mcp/`、`src/api.rs` 与 `tests/interface_parity.rs` 实现版本化只读端口及显式写能力协商，复用核心绑定/授权；对 CLI/API/MCP 同 fixture 比较范围、状态和诊断，未知能力/版本拒绝，默认不给写凭据。（Requirement: Audited compatibility rollout and extensible ports）
 - [ ] 5.4 在 `docs/rollout-and-rollback.md`、`tests/rollout_rollback.rs` 落地 advisory→shadow→opt-in→enforcement 切换与独立 adapter/executor 回滚，保留历史/未知操作对账，差分未裁决不得强制；GE-RELEASE 后验证固定包版本与兼容矩阵，不改旧原生 CLI。（Requirement: Protected platform rollout and recovery proof；Requirement: Audited compatibility rollout and extensible ports）
 - [ ] 5.5 在 `tests/end_to_end_guard_gates.rs` 与 `fixtures/end-to-end/` 联合已就绪门槛：两个并行需求、exact synthetic queue candidate、baseline/expiry/revocation、drift、late completion、CodeGuard native parity、取消与回滚；保存真实输入/digest/报告/exit/receipt 对应证据，确认 FG-GATE 不授予 grant 且 read-only 阶段无循环依赖。（Requirement: Read-only candidate dependency boundary；Requirement: Protected platform rollout and recovery proof）
+
+## Local reviewed acceptance checkpoint
+
+Independently reviewed local implementation accepts tasks 1.3, 1.5, 1.6, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6. See docs/implementation-progress.md for evidence. These checkmarks cover the explicitly supported local profiles, not production authentication, hosted enforcement or release. Other tasks remain pending.

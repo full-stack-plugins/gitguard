@@ -56,3 +56,7 @@ Compatibility: advance local snapshot wire version from gitguard.candidate/v1alp
 TDD: `cargo test --test scope_binding` RED 0/2: opposite local completeness outcomes had identical digest; allowed_paths was absent. Same command GREEN 2/2 after fix. Logs: gitguard-review-fix-red.log and gitguard-review-fix-green.log. Tests additionally cover byte sorting/non-UTF-8, exact duplicate normalization, unsafe/unsorted/duplicate serialized paths, required field and old-version rejection.
 
 Review-fix verification: full `cargo test` passed 23 integration tests, zero failures; `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`, and `git diff --check` passed. Evidence: gitguard-review-fix-tests.log and gitguard-review-fix-clippy.log. Awaiting root's independent recheck; earlier trust, baseline, filesystem and process-containment limitations remain unchanged.
+
+## Independent review acceptance
+
+Local full task acceptance: 1.3, 1.5, 1.6, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6. Review findings were fixed with RED/GREEN regressions and independently rechecked; see cloud execution ledger gitguard-review.md. Scope remains local and advisory/fixture-labelled where stated. Production authority, remaining capability gaps and hosted gates are not claimed.
