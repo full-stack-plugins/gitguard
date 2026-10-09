@@ -1,0 +1,1 @@
+{"apiVersion":"guard.partme.ai/v1alpha1","kind":"GuardContract","metadata":{"id":"gitguard.scope","revision":"1"},"spec":{"rules":[{"assertion":{"object":"task-scope","predicate":"violates","subject":"git-candidate","type":"forbid_relation"},"description":"Changed paths must remain in frozen task scope","enforcement":"enforce","id":"scope.allowed-paths"}]}}

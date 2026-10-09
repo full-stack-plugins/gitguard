@@ -1,0 +1,1 @@
+{"schema_version":"testguard.local/v1","profile":"local-fixture-advisory","decision":"ALLOW","coverage":{"schema_version":"testguard.local/v1","execution":{"numerator":1,"denominator":1},"obligations":{"numerator":1,"denominator":1},"missing":[],"unsatisfied":[],"source_metrics":[],"not_applicable_reasons":[]},"findings":[]}

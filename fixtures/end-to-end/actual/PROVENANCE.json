@@ -1,0 +1,506 @@
+{
+  "version": "flowguard.actual-providers/v1",
+  "authority": "fixture-ci-only; no production issuer",
+  "candidate": "10765def2dc06ff914c5e88df9ac5834d607e3ae",
+  "base": "88ac090f58453bd5f095bfb844f539ec60ad26a3",
+  "repository": "cross-guard-repo",
+  "producerPins": {
+    "specguard": "4560d133a1ac28dc50fff5aad7aa76062cdc6911",
+    "archguard": "7f21806f2a0af544df978d0bfea3e1a840091f2b",
+    "gitguard": "ff1afb3164ab5720c3964cfcc3add542cb8b8831",
+    "testguard": "e2e9147117944a2923373705554d5bdfb5c88ee8",
+    "codeguardProjection": "72d80ae453c0380ad7061c10847595c5a4ac1736",
+    "codeguardNative": "f5661d51dd1b2629f3b87b726fb09a9060ce7958",
+    "guardengineRust": "20c53cdbff385034afd750fdebd38ae7d0fab071",
+    "guardengineCodeguard": "c80ec325449842d51007db2fd507040c53dc8f51"
+  },
+  "protectedBeforeResults": {
+    "policies.json": "c5ff26cfa4229c3c6681f9fe4fcec55a633f4719a1eccf5286bfb0197b218a0a",
+    "scopes.json": "8a522b3b01900df1a21d73d0af23f3b3fe8a82136efaf5f05769a3c5e2ed71d6",
+    "binding.json": "e2e57df114e3c6a9be92203e8300fef139fad70071487e9cc8c186c328a15368",
+    "sources.json": "16e4a4365c2453b8b7938a5c35da25df4c3e4547ca0a9e65aa59cefadbef5f5b",
+    "frozen.json": "9ce2e3a12c780fc646a7a32a9ce578810376ac7b0d5fc7b6ec26ad7ba85f43e9",
+    "archguard/candidate.json": "b4e196687eecf597fa4cb797d00782878965392516c445c3dda0ec38045f90f2",
+    "archguard/policy.json": "8e2a411038bf71161a58c7ff092eb71e3e7a061c7cd85719e3ae56edc74cbd75",
+    "archguard/prepared-contract.json": "07d1283488a1186919e29cdfcd12c13706a239734e4c408ecbbb12b9f9d0fff1",
+    "archguard/expected.json": "85e14b48e92f23d9204fdaa187c3cb43b0e860628e71d517cb0aa4a229e88f43",
+    "gitguard/candidate.json": "ac2aabca5ac3b0113c05baa61f3b6542da317f426a00810bcc26ad0630154597",
+    "gitguard/prepared-contract.json": "a18057fde23d3735957b0c3f49f2c4dc64c6c5620b1967d3345c11dbf4502f65",
+    "gitguard/request.json": "c8fef2c683480d98747f16dbd3c891723ed2dc24e71cb2dd4290adb8f7b70228",
+    "gitguard/expected.json": "c1ad827eeeb4ad3d27e88dd010347f38566b278256ca0c4285a1122ac91f51dd",
+    "specguard/review.json": "21087597583a603fba071281f3b3d06775dce71ede0126cec077fdb4a218f5f5",
+    "specguard/prepared-contract.json": "da134340a7010cd4ffe37a286e8e2d2e157410230dd35d8800b0b313401f0b59",
+    "specguard/expected.json": "1a5e43508e9118a7d38f42dcb00357ae33a2393a90d362011ebf97c88b8cfa08",
+    "specguard/mapping.json": "b8b39e65ff6b33a4a74cab4db37f983e95b95186bbd81dac04f52d3f0460ff72",
+    "specguard/snapshot.json": "4cb5e4a54445a4c539ebf527fdb512f5af06390aac45718cb65eed8176283921",
+    "specguard/baseline.json": "6ede98e848bf8f80b368d3bd6b57d63682b92ef35440a6f836a76aef14a3c82a",
+    "codeguard/prepare-invocation.json": "761fba408a67806aefdcc51a0fc989225c2a5396b084cba3d3223d692b3ba196",
+    "codeguard/prepare-context.json": "56e9bf8806d0a717b270c3cce162fc85d9a9fa3bd1eb217fcfa5d26c989c5e66",
+    "codeguard/prepared-contract.json": "e81dcbd8d3d6e36e6147419019212a19f636a48777f1cad6d51967d457c81f3e",
+    "codeguard/prepare.stdout.json": "4a88107e7ec756ca762ffef79ce18c10b153797afc2b0361495161e7d0c0f2d5",
+    "codeguard/prepare.stderr.json": "ce899682db6630f4061a24ebdc3c871c1ad87f303dad7b330736c1413e27056a",
+    "codeguard/expected.json": "0d2a4007ff18c737542743b571a0aa521b51b39b382196a1d3ce9d153992c407",
+    "codeguard/mapping.json": "e800eb30a186de6a2f42a7156d440c4c684403702290cec25e8b97540ff902f6",
+    "codeguard/contract-input.json": "861919f89539268d37e4885e39e5e7a727ff8d538cf99afbb60db3c99731f881",
+    "testguard/obligations.json": "9952e6e6283163f85c012fe399a8787668707271b4bed06c02b7df1320d7644b",
+    "testguard/prepared-contract.json": "bce257d182adc1326bd898e2b9d6cd36d9646687e88ab3516b294445b9d08097",
+    "testguard/profile.json": "6c46461875ab8dde3508d1e89586c1e35e1213e1327371afb90c2f3a72bb313f",
+    "testguard/invocation.json": "c178595bfdd711b68463c048faa265ea7f08cacb6351a484b2ede6f0a46dad02",
+    "testguard/plan.json": "d5ba01c7c1cacfc6636b47663581ce07d240f2857096463575d4b0d07ac62f8b",
+    "testguard/expected.json": "6717abec5ce08b8e9cd25e4174fec6780f3428604cbbd84e978c487939e32d90"
+  },
+  "commands": [
+    {
+      "label": "cargo-version",
+      "argv": [
+        "cargo",
+        "--version"
+      ],
+      "cwd": "/workspace/guard-implementation-ledger/specguard-flowguard-work/repository",
+      "exit": 0,
+      "stdoutSha256": "1f88eaf7fe1aaec83184752cf4c944cd22f00184136ff36a3e4c318cc60ef566",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "cargo-lock",
+      "argv": [
+        "cargo",
+        "generate-lockfile",
+        "--offline",
+        "--manifest-path",
+        "/workspace/guard-implementation-ledger/specguard-flowguard-work/repository/Cargo.toml"
+      ],
+      "cwd": "/workspace/guard-implementation-ledger/specguard-flowguard-work/repository",
+      "exit": 0,
+      "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "git-init",
+      "argv": [
+        "/usr/bin/git",
+        "-c",
+        "init.defaultBranch=main",
+        "init",
+        "-q"
+      ],
+      "cwd": "/workspace/guard-implementation-ledger/specguard-flowguard-work/repository",
+      "exit": 0,
+      "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "git-add",
+      "argv": [
+        "/usr/bin/git",
+        "add",
+        "."
+      ],
+      "cwd": "/workspace/guard-implementation-ledger/specguard-flowguard-work/repository",
+      "exit": 0,
+      "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "git-commit",
+      "argv": [
+        "/usr/bin/git",
+        "commit",
+        "-qm",
+        "trusted cross-guard fixture"
+      ],
+      "cwd": "/workspace/guard-implementation-ledger/specguard-flowguard-work/repository",
+      "exit": 0,
+      "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "git-base",
+      "argv": [
+        "/usr/bin/git",
+        "rev-parse",
+        "HEAD"
+      ],
+      "cwd": "/workspace/guard-implementation-ledger/specguard-flowguard-work/repository",
+      "exit": 0,
+      "stdoutSha256": "9757d812592ed73a84bae912113d74045afc2b6b9277992526d9aa73bdfe500a",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "actual-sg-baseline",
+      "argv": [
+        "/workspace/guard-implementation/flowguard/target/debug/examples/generate_approval_bridge",
+        "sg-baseline",
+        "/workspace/guard-implementation-ledger/specguard-flowguard-work/repository",
+        "/workspace/guard-implementation-ledger/specguard-flowguard-capture"
+      ],
+      "cwd": "/workspace/guard-implementation-ledger/specguard-flowguard-work/repository",
+      "exit": 0,
+      "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "git-add-candidate",
+      "argv": [
+        "/usr/bin/git",
+        "add",
+        "."
+      ],
+      "cwd": "/workspace/guard-implementation-ledger/specguard-flowguard-work/repository",
+      "exit": 0,
+      "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "git-commit-candidate",
+      "argv": [
+        "/usr/bin/git",
+        "commit",
+        "-qm",
+        "reviewed current specification"
+      ],
+      "cwd": "/workspace/guard-implementation-ledger/specguard-flowguard-work/repository",
+      "exit": 0,
+      "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "git-head",
+      "argv": [
+        "/usr/bin/git",
+        "rev-parse",
+        "HEAD"
+      ],
+      "cwd": "/workspace/guard-implementation-ledger/specguard-flowguard-work/repository",
+      "exit": 0,
+      "stdoutSha256": "e95726bb5fcc185eed185a0fead3beb897cf637dcc53203dc6f3849d838148b8",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "git-source-bundle",
+      "argv": [
+        "/usr/bin/git",
+        "bundle",
+        "create",
+        "/workspace/guard-implementation-ledger/specguard-flowguard-capture/source.bundle",
+        "HEAD"
+      ],
+      "cwd": "/workspace/guard-implementation-ledger/specguard-flowguard-work/repository",
+      "exit": 0,
+      "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "prepare-gg-ag",
+      "argv": [
+        "/workspace/guard-implementation/flowguard/target/debug/examples/generate_approval_bridge",
+        "prepare",
+        "/workspace/guard-implementation-ledger/specguard-flowguard-work/repository",
+        "/workspace/guard-implementation-ledger/specguard-flowguard-capture"
+      ],
+      "cwd": "/workspace/guard-implementation-ledger/specguard-flowguard-work/repository",
+      "exit": 0,
+      "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "prepare-sg",
+      "argv": [
+        "/workspace/guard-implementation/flowguard/target/debug/examples/generate_approval_bridge",
+        "sg-prepare",
+        "/workspace/guard-implementation-ledger/specguard-flowguard-work/repository",
+        "/workspace/guard-implementation-ledger/specguard-flowguard-capture"
+      ],
+      "cwd": "/workspace/guard-implementation-ledger/specguard-flowguard-work/repository",
+      "exit": 0,
+      "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "prepare-tg",
+      "argv": [
+        "/workspace/guard-implementation/testguard/target/debug/examples/generate_approval_bridge_tg",
+        "prepare",
+        "/workspace/guard-implementation-ledger/specguard-flowguard-work/repository",
+        "/workspace/guard-implementation-ledger/specguard-flowguard-capture"
+      ],
+      "cwd": "/workspace/guard-implementation-ledger/specguard-flowguard-work/repository",
+      "exit": 0,
+      "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "cg-prepare-before-native",
+      "argv": [
+        "/workspace/guard-implementation-ledger/codeguard-ruff-cli-capture/codeguard",
+        "guard-project-ruff",
+        "--invocation",
+        "/workspace/guard-implementation-ledger/specguard-flowguard-capture/codeguard/prepare-invocation.json",
+        "--native-report",
+        "/workspace/guard-implementation-ledger/specguard-flowguard-capture/codeguard/not-yet-executed.json",
+        "--context",
+        "/workspace/guard-implementation-ledger/specguard-flowguard-capture/codeguard/prepare-context.json",
+        "--mapping",
+        "/workspace/guard-implementation-ledger/specguard-flowguard-capture/codeguard/mapping.json",
+        "--contract",
+        "/workspace/guard-implementation-ledger/specguard-flowguard-capture/codeguard/contract-input.json"
+      ],
+      "cwd": "/workspace/guard-implementation-ledger/specguard-flowguard-work/repository",
+      "exit": 4,
+      "stdoutSha256": "4a88107e7ec756ca762ffef79ce18c10b153797afc2b0361495161e7d0c0f2d5",
+      "stderrSha256": "ce899682db6630f4061a24ebdc3c871c1ad87f303dad7b330736c1413e27056a"
+    },
+    {
+      "label": "freeze-cg-expectation",
+      "argv": [
+        "/workspace/guard-implementation/flowguard/target/debug/examples/generate_approval_bridge",
+        "cg-prepare",
+        "/workspace/guard-implementation-ledger/specguard-flowguard-work/repository",
+        "/workspace/guard-implementation-ledger/specguard-flowguard-capture"
+      ],
+      "cwd": "/workspace/guard-implementation-ledger/specguard-flowguard-work/repository",
+      "exit": 0,
+      "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "freeze-fg-before-results",
+      "argv": [
+        "/workspace/guard-implementation/flowguard/target/debug/examples/generate_approval_bridge",
+        "freeze",
+        "/workspace/guard-implementation-ledger/specguard-flowguard-work/repository",
+        "/workspace/guard-implementation-ledger/specguard-flowguard-capture"
+      ],
+      "cwd": "/workspace/guard-implementation-ledger/specguard-flowguard-work/repository",
+      "exit": 0,
+      "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "actual-native-codeguard",
+      "argv": [
+        "/workspace/guard-implementation-ledger/codeguard-ruff-native-capture/codeguard-f5661d5",
+        "lint",
+        "python",
+        "/workspace/guard-implementation-ledger/specguard-flowguard-work/repository",
+        "--format=json",
+        "--file",
+        "app.py",
+        "--ruff-tool",
+        "/workspace/guard-toolchain/python-native/bin/ruff"
+      ],
+      "cwd": "/workspace/guard-implementation-ledger/specguard-flowguard-work/repository",
+      "exit": 3,
+      "stdoutSha256": "3352d6c05141e28b98ac387959da21da488ccb65adf0a3a8f9166527aafdbb6e",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "actual-cg-projection",
+      "argv": [
+        "/workspace/guard-implementation-ledger/codeguard-ruff-cli-capture/codeguard",
+        "guard-project-ruff",
+        "--invocation",
+        "/workspace/guard-implementation-ledger/specguard-flowguard-capture/codeguard/invocation.json",
+        "--native-report",
+        "/workspace/guard-implementation-ledger/specguard-flowguard-capture/codeguard/native.json",
+        "--context",
+        "/workspace/guard-implementation-ledger/specguard-flowguard-capture/codeguard/context.json",
+        "--mapping",
+        "/workspace/guard-implementation-ledger/specguard-flowguard-capture/codeguard/mapping.json",
+        "--contract",
+        "/workspace/guard-implementation-ledger/specguard-flowguard-capture/codeguard/contract-input.json"
+      ],
+      "cwd": "/workspace/guard-implementation-ledger/specguard-flowguard-work/repository",
+      "exit": 0,
+      "stdoutSha256": "9567ead405d99f7f397cc223b8b835d954ef7e41ed81e76f4fc0f2705fd8fdbd",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "actual-cargo-discovery",
+      "argv": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "--manifest-path",
+        "/workspace/guard-implementation-ledger/specguard-flowguard-work/repository/Cargo.toml",
+        "-p",
+        "cross-guard-app",
+        "--lib",
+        "tests::required_answer",
+        "--",
+        "--list",
+        "--format",
+        "terse"
+      ],
+      "cwd": "/workspace/guard-implementation-ledger/specguard-flowguard-work/repository",
+      "exit": 0,
+      "stdoutSha256": "8e36569b075cec8580647a30ff5e6bedf28b57d16ed6518176059301b9bc7377",
+      "stderrSha256": "247c671c9b44be06d7a137f8197b89f1b537f08b95ae76f082227da40ab1ad49"
+    },
+    {
+      "label": "actual-cargo-run",
+      "argv": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "--manifest-path",
+        "/workspace/guard-implementation-ledger/specguard-flowguard-work/repository/Cargo.toml",
+        "-p",
+        "cross-guard-app",
+        "--lib",
+        "tests::required_answer",
+        "--",
+        "--format",
+        "pretty",
+        "--test-threads=1"
+      ],
+      "cwd": "/workspace/guard-implementation-ledger/specguard-flowguard-work/repository",
+      "exit": 0,
+      "stdoutSha256": "c5682f1849843dfa0c7799627872cd11d145937627ae37038d22ace3871a94b9",
+      "stderrSha256": "dbaf56f32105f99fcd04da4507971bd8585709baea15bf09149f3ab024a2ef2c"
+    },
+    {
+      "label": "actual-tg-producer",
+      "argv": [
+        "/workspace/guard-implementation/testguard/target/debug/examples/generate_approval_bridge_tg",
+        "finish",
+        "/workspace/guard-implementation-ledger/specguard-flowguard-work/repository",
+        "/workspace/guard-implementation-ledger/specguard-flowguard-capture"
+      ],
+      "cwd": "/workspace/guard-implementation-ledger/specguard-flowguard-work/repository",
+      "exit": 0,
+      "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "actual-sg-producer",
+      "argv": [
+        "/workspace/guard-implementation/flowguard/target/debug/examples/generate_approval_bridge",
+        "sg-finish",
+        "/workspace/guard-implementation-ledger/specguard-flowguard-work/repository",
+        "/workspace/guard-implementation-ledger/specguard-flowguard-capture"
+      ],
+      "cwd": "/workspace/guard-implementation-ledger/specguard-flowguard-work/repository",
+      "exit": 0,
+      "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "actual-ag-gg-producers",
+      "argv": [
+        "/workspace/guard-implementation/flowguard/target/debug/examples/generate_approval_bridge",
+        "finish",
+        "/workspace/guard-implementation-ledger/specguard-flowguard-work/repository",
+        "/workspace/guard-implementation-ledger/specguard-flowguard-capture"
+      ],
+      "cwd": "/workspace/guard-implementation-ledger/specguard-flowguard-work/repository",
+      "exit": 0,
+      "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "git-status-after",
+      "argv": [
+        "/usr/bin/git",
+        "status",
+        "--porcelain"
+      ],
+      "cwd": "/workspace/guard-implementation-ledger/specguard-flowguard-work/repository",
+      "exit": 0,
+      "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "binarySha256": {
+    "/workspace/guard-implementation-ledger/codeguard-ruff-native-capture/codeguard-f5661d5": "b7576afa78f5ab6fdc8133650a1c75dc113357ac927e553b4f5c67731eea3a8c",
+    "/workspace/guard-implementation-ledger/codeguard-ruff-cli-capture/codeguard": "df8fe1a6e208db0bdc8f7fe6b443dbc826b7ce377a0568989ce5e37699940dba",
+    "/workspace/guard-toolchain/python-native/bin/ruff": "f3eb080f0173e1a5884fabcc2c836f5a0ebea35fccf252e718fc71b17f821ef7",
+    "/workspace/guard-implementation/flowguard/target/debug/examples/generate_approval_bridge": "2eb7ec2a99fe97f39676487d17dfca5ac944bf636a78eedeba5e5104917a6cf8",
+    "/workspace/guard-implementation/testguard/target/debug/examples/generate_approval_bridge_tg": "12f71b8ac826d3109e14223b16df8e5f978dddf8df8f4912c9a9422645e6d188"
+  },
+  "generatorSha256": {
+    "capture.py": "05ed5e96021db1cf4f6bcc6e61e9d2dc02193c68986a56cb987c71cf8344a8b3",
+    "generate_testguard.rs": "9188c5a23156b6e45257e3133cb80892224de5b007d80832b0088bcfe29479b4",
+    "generate_approval_bridge.rs": "9aa36f5e074dd5f177ac807aeb410b43ff9c504e6b2b0e799426deb17cc8e228"
+  },
+  "artifacts": {
+    "policies.json": "c5ff26cfa4229c3c6681f9fe4fcec55a633f4719a1eccf5286bfb0197b218a0a",
+    "source.bundle": "d48fc614c09c36c238e67de2f68d3a908b31d11fed282ccd68bc8c355f65bad2",
+    "scopes.json": "8a522b3b01900df1a21d73d0af23f3b3fe8a82136efaf5f05769a3c5e2ed71d6",
+    "binding.json": "e2e57df114e3c6a9be92203e8300fef139fad70071487e9cc8c186c328a15368",
+    "sources.json": "16e4a4365c2453b8b7938a5c35da25df4c3e4547ca0a9e65aa59cefadbef5f5b",
+    "frozen.json": "9ce2e3a12c780fc646a7a32a9ce578810376ac7b0d5fc7b6ec26ad7ba85f43e9",
+    "archguard/domain.json": "d067759c8cfae017d8e9204778265ccb3af0dcfb5e9dc5f8ee306ec804badf99",
+    "archguard/candidate.json": "b4e196687eecf597fa4cb797d00782878965392516c445c3dda0ec38045f90f2",
+    "archguard/policy.json": "8e2a411038bf71161a58c7ff092eb71e3e7a061c7cd85719e3ae56edc74cbd75",
+    "archguard/prepared-contract.json": "07d1283488a1186919e29cdfcd12c13706a239734e4c408ecbbb12b9f9d0fff1",
+    "archguard/contract.json": "07d1283488a1186919e29cdfcd12c13706a239734e4c408ecbbb12b9f9d0fff1",
+    "archguard/bundle.json": "3250cb01c28b14068887b5d27a72c7b22aaf96c6ca434e4c299170e1aaf1cb0a",
+    "archguard/expected.json": "85e14b48e92f23d9204fdaa187c3cb43b0e860628e71d517cb0aa4a229e88f43",
+    "archguard/envelope.json": "5a93c77f41a44f0198d98a059f2ad2443c5319687be48f0c241dff116161a284",
+    "archguard/report.json": "f9d568e04f4faeeb5f3c06a68a1d30088d950da52b6abad37cbdb9ec8343c5c9",
+    "archguard/facts.json": "b1c793677ad7a22cf671f36f93ceb437d58a38ea9df797122e62eab16bd98056",
+    "gitguard/domain.json": "26c9163bcd2e1da193300ca9a36f4fbdd3779f16190181f553516a41113c2b43",
+    "gitguard/candidate.json": "ac2aabca5ac3b0113c05baa61f3b6542da317f426a00810bcc26ad0630154597",
+    "gitguard/prepared-contract.json": "a18057fde23d3735957b0c3f49f2c4dc64c6c5620b1967d3345c11dbf4502f65",
+    "gitguard/request.json": "c8fef2c683480d98747f16dbd3c891723ed2dc24e71cb2dd4290adb8f7b70228",
+    "gitguard/contract.json": "a18057fde23d3735957b0c3f49f2c4dc64c6c5620b1967d3345c11dbf4502f65",
+    "gitguard/bundle.json": "806123b0d88b9d6f71b8c9e1c9aedcaa1660f874657dc2eb1c461df6a49f39e3",
+    "gitguard/expected.json": "c1ad827eeeb4ad3d27e88dd010347f38566b278256ca0c4285a1122ac91f51dd",
+    "gitguard/envelope.json": "ef78180a4264a60c1302c5bd14010dd96348610b8789eb55c0282fed9d0320ee",
+    "gitguard/report.json": "8b8bbe7ff634416ad809781c2917b1149654c83d60d88a19855585ad5e708599",
+    "gitguard/facts.json": "fe60d70fa7bdf5a56e3d91a6ad74ca76bd06525f0595e81053b06631e39543f6",
+    "specguard/domain.json": "f3990c67de7b668290246b4c8d67ae55459bfc8b706cbe05134abd2f1f3b9b5f",
+    "specguard/review.json": "21087597583a603fba071281f3b3d06775dce71ede0126cec077fdb4a218f5f5",
+    "specguard/prepared-contract.json": "da134340a7010cd4ffe37a286e8e2d2e157410230dd35d8800b0b313401f0b59",
+    "specguard/original.json": "d1d0b6330f734c6e06a8229e6c3ec9fad8426ad85dca0a1ce2a2340876b672d1",
+    "specguard/contract.json": "da134340a7010cd4ffe37a286e8e2d2e157410230dd35d8800b0b313401f0b59",
+    "specguard/expected.json": "1a5e43508e9118a7d38f42dcb00357ae33a2393a90d362011ebf97c88b8cfa08",
+    "specguard/envelope.json": "e438b86f3faf9c3bea290151c80d2ebab82da785f4fa64427b97d4068cb5270d",
+    "specguard/mapping.json": "b8b39e65ff6b33a4a74cab4db37f983e95b95186bbd81dac04f52d3f0460ff72",
+    "specguard/snapshot.json": "4cb5e4a54445a4c539ebf527fdb512f5af06390aac45718cb65eed8176283921",
+    "specguard/report.json": "f185a547334fcda8878198fce212a6a32afcff76b594dc0901480e41f560a619",
+    "specguard/facts.json": "499b0d70a5727c5e877337dc72899447d9240f413329414537886e1f3b3bad07",
+    "specguard/baseline.json": "6ede98e848bf8f80b368d3bd6b57d63682b92ef35440a6f836a76aef14a3c82a",
+    "codeguard/projection.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "codeguard/context.json": "a32f129e72e4e1ea7282698a47b47f900b4ce5e174c4a04ebaa0f90cde9878c2",
+    "codeguard/prepare-invocation.json": "761fba408a67806aefdcc51a0fc989225c2a5396b084cba3d3223d692b3ba196",
+    "codeguard/domain.json": "3352d6c05141e28b98ac387959da21da488ccb65adf0a3a8f9166527aafdbb6e",
+    "codeguard/prepare-context.json": "56e9bf8806d0a717b270c3cce162fc85d9a9fa3bd1eb217fcfa5d26c989c5e66",
+    "codeguard/prepared-contract.json": "e81dcbd8d3d6e36e6147419019212a19f636a48777f1cad6d51967d457c81f3e",
+    "codeguard/prepare.stdout.json": "4a88107e7ec756ca762ffef79ce18c10b153797afc2b0361495161e7d0c0f2d5",
+    "codeguard/prepare.stderr.json": "ce899682db6630f4061a24ebdc3c871c1ad87f303dad7b330736c1413e27056a",
+    "codeguard/contract.json": "e81dcbd8d3d6e36e6147419019212a19f636a48777f1cad6d51967d457c81f3e",
+    "codeguard/invocation.json": "86c542814f968b093ee235b16f5ce63555894888218e728819974eeafe0046e0",
+    "codeguard/bundle.json": "9567ead405d99f7f397cc223b8b835d954ef7e41ed81e76f4fc0f2705fd8fdbd",
+    "codeguard/expected.json": "0d2a4007ff18c737542743b571a0aa521b51b39b382196a1d3ce9d153992c407",
+    "codeguard/native.json": "3352d6c05141e28b98ac387959da21da488ccb65adf0a3a8f9166527aafdbb6e",
+    "codeguard/envelope.json": "fc9237e3603c8323986fa9b2cfba982a4f09c3abe68ad34a385b797569f4db72",
+    "codeguard/mapping.json": "e800eb30a186de6a2f42a7156d440c4c684403702290cec25e8b97540ff902f6",
+    "codeguard/native.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "codeguard/report.json": "f6b338b4ddb1ff91142426d2e19232b84c46b087a529e86f09439060c908c8ba",
+    "codeguard/facts.json": "a683cd7a4aa0f2d7b104e518d22ce99f5398bbb2688c97d8078844016a427e29",
+    "codeguard/contract-input.json": "861919f89539268d37e4885e39e5e7a727ff8d538cf99afbb60db3c99731f881",
+    "testguard/domain.json": "0bbe6d3adadcfec8a04d51da886c5de8c29a2a2135369af9acd5989972756187",
+    "testguard/obligations.json": "9952e6e6283163f85c012fe399a8787668707271b4bed06c02b7df1320d7644b",
+    "testguard/prepared-contract.json": "bce257d182adc1326bd898e2b9d6cd36d9646687e88ab3516b294445b9d08097",
+    "testguard/profile.json": "6c46461875ab8dde3508d1e89586c1e35e1213e1327371afb90c2f3a72bb313f",
+    "testguard/capture.json": "c0f2dfbf0f94590ec6949a46a29484f9061b10ddac0760eb90fd8996effbdb0e",
+    "testguard/contract.json": "bce257d182adc1326bd898e2b9d6cd36d9646687e88ab3516b294445b9d08097",
+    "testguard/invocation.json": "c178595bfdd711b68463c048faa265ea7f08cacb6351a484b2ede6f0a46dad02",
+    "testguard/stderr.raw": "dbaf56f32105f99fcd04da4507971bd8585709baea15bf09149f3ab024a2ef2c",
+    "testguard/attempt.json": "628558d3c3c15608f422c90e2d2084e87bc555d21f1e1f004dcd4f94f6e1f343",
+    "testguard/inventory.stderr": "247c671c9b44be06d7a137f8197b89f1b537f08b95ae76f082227da40ab1ad49",
+    "testguard/bundle.json": "a66a6d8239464e5fe6b5629621beab3c56a5df48f15b76bec67c9487d99432ab",
+    "testguard/plan.json": "d5ba01c7c1cacfc6636b47663581ce07d240f2857096463575d4b0d07ac62f8b",
+    "testguard/expected.json": "6717abec5ce08b8e9cd25e4174fec6780f3428604cbbd84e978c487939e32d90",
+    "testguard/envelope.json": "f75de601dc32ef54cf0a3508b9bf0cd692650707fc56dac410883b1dbd3c1e43",
+    "testguard/report.json": "0c5c402f6674cda55918e7ec8cfbfc39afe9d272c6be8e1f2eeb5b5caebee7c0",
+    "testguard/stdout.raw": "c5682f1849843dfa0c7799627872cd11d145937627ae37038d22ace3871a94b9",
+    "testguard/inventory.raw": "8e36569b075cec8580647a30ff5e6bedf28b57d16ed6518176059301b9bc7377",
+    "testguard/facts.json": "10d3f671fd7c643ffbea80a56d11745482dd74cf5397009faca83149b32d0e64"
+  },
+  "captureModuleSha256": "3a36b532ace1ccaa50101d2b948e6cb1e617d8ace6f213051e64f629901b6155"
+}

@@ -1,0 +1,4 @@
+   Compiling cross-guard-core v0.1.0 (/workspace/guard-implementation-ledger/specguard-flowguard-work/repository/core)
+   Compiling cross-guard-app v0.1.0 (/workspace/guard-implementation-ledger/specguard-flowguard-work/repository/app)
+    Finished `test` profile [unoptimized] target(s) in 0.08s
+     Running unittests src/lib.rs (/workspace/guard-implementation/flowguard/target/debug/deps/cross_guard_app-ad9339292316ab06)

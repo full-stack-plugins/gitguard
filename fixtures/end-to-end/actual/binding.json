@@ -1,0 +1,1 @@
+{"repoId":"cross-guard-repo","taskId":"cross-guard-task","worktreeId":"fixture-worktree","requirementIds":["demo:R"],"candidateOid":"10765def2dc06ff914c5e88df9ac5834d607e3ae","baseOid":"88ac090f58453bd5f095bfb844f539ec60ad26a3","mergeGroupId":null,"sourceSnapshotDigest":"sha256:b7ac69b5f7a37e2bb97ec18bcf119e9fc3e21c5a98c5eb6c87c1836e6a2165fa","baselineDigest":null}
