@@ -1,0 +1,59 @@
+{
+  "source_pins": {
+    "flowguard": "1fd70a11ac0e874ca1bf21801987320c237647de",
+    "gitguard": "f6c7368c146d8549e54acbe17e0cba86c7cb8e80",
+    "guardengine": "b0e4b445e1a20a9354d55ebb41bbedaf16ec8a74",
+    "specguard": "8fc3f9b0df0df388b8f4ec6cdedab64f89d1d033",
+    "archguard": "d6c8235d9a02e6039a5b5212cf0cadede8b53a3d"
+  },
+  "source_file_comparisons": 366,
+  "retained_producer_artifacts_verified": 304,
+  "cases": {
+    "A": 0,
+    "B": 0,
+    "M1": 0,
+    "M2": 0,
+    "A_to_B": 4,
+    "A_to_M1": 4,
+    "M1_to_M2": 4,
+    "A_expired": 4,
+    "B_revoked": 4
+  },
+  "consumer_sha256": "sha256:9d0dadea6bcafce083a487548ffb4b082945bfa136f693760e7403de2b3fbf24",
+  "invalidation": {
+    "causal_paths": {
+      "A": [
+        "project02",
+        "A"
+      ],
+      "B": [
+        "project02",
+        "B"
+      ],
+      "M2": [
+        "project02",
+        "M2"
+      ],
+      "project02": [
+        "project02"
+      ]
+    },
+    "historical_bytes_unchanged": true,
+    "old_M1_publication_refused": true,
+    "project_node": "unexecuted controller source tracker, no positive gate or authority",
+    "rule_and_analyzer_drift_withdraw_A_only": true,
+    "scoped_approved_baselines": {
+      "A": "sha256:12310020e444afdf9d70912811960a0e5ea75ce3fd372e4d3a4744e62f585924",
+      "B": "sha256:5e33958b95e6541c54774d7233e54ff572ef1c8b139a762252145d6061b2e9cb",
+      "M2": "sha256:b56c943133c1c8f449e704b7d322499a388dca2422f4048f2f128ec35d1c1419"
+    },
+    "shared_project_digest": "sha256:a49d593f057614c030d7379378dcf55393665d6293963c080a79596dc61e6e5f",
+    "shared_project_invalidation": true
+  },
+  "command_count": 82,
+  "producer_runtime_observation": {
+    "sha": null,
+    "dirty": null,
+    "profile": "archive; source pins supplied by independent review"
+  }
+}

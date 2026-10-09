@@ -1,0 +1,1 @@
+{"apiVersion":"guard.partme.ai/v1alpha1","kind":"GuardContract","metadata":{"id":"cross-guard-architecture","revision":"1"},"spec":{"rules":[{"assertion":{"object":"cross-guard-app","predicate":"depends_on","subject":"cross-guard-core","type":"forbid_relation"},"description":"","enforcement":"enforce","id":"direction"}]}}

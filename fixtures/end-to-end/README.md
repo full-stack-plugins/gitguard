@@ -34,3 +34,80 @@ GITGUARD_BINARY=/absolute/gitguard FLOWGUARD_BINARY=/absolute/flowguard \
 ```
 
 This remains **partial 5.5**: it does not claim two newly evaluated successful requirement pipelines, a synthetic merge-group joint scenario, cross-guard late-completion persistence, fresh native CodeGuard execution, or hosted receipt/real-identity enforcement. Existing dedicated tests cover some of those mechanisms separately; they are not counted as this composed scenario. The CLI process boundary avoids a reverse GitGuard-to-FlowGuard library dependency (FlowGuard already depends on GitGuard), and preserves producer dependency locks.
+
+## GG consumption of the four independently generated groups
+
+```sh
+cargo test --locked --offline --features privileged-execution --test joint_specialist_consumption
+cargo run --locked --offline --features privileged-execution --example joint_consumption
+```
+
+The GG-only example accepts no user repository, URL or credential. It restores a
+fixed bundle into a private temporary repository under the working directory,
+creates four detached physical worktrees, and uses the real
+`PreparedSpecialistConsumption` port. Run on the already supported local filesystem
+profile; intent storage does not accept tmpfs. Default builds reject the mutation
+fixture before creating it. There is no FlowGuard library dependency.
+
+`joint/` contains unchanged material from the independent FG joint capture produced
+with FG `1fd70a11ac0e874ca1bf21801987320c237647de`; its
+`independent-source-and-artifact-verification.json` retains the exact other source
+pins. `producer-manifest.json` pins all 304 original producer artifacts across
+A/B/M1/M2. The new `TRANSPORT.json` pins copied capture files plus an added Git
+transport bundle; its own SHA256 is fixed in the example. The bundle was made from
+a separate temporary bare copy of the captured repository with explicit references
+to all four captured OIDs. This neither changes original envelopes nor reruns any
+producer/native command. Original absolute paths remain historical metadata;
+the example never reads those locations.
+
+A/B are different real tasks and requirement sets with the same project baseline
+graph/source revision and different approved scope digests. M1/M2 are different
+real synthetic commits, group IDs, member orders and bases. The original logical
+worktreeId is `fixture-worktree` in all four captures; that value is preserved,
+while the replay creates four separate physical worktrees. Policy expectations
+are read from separately pinned per-domain policy artifacts, never inferred from
+received envelopes or flattened into one domain's scopes.
+
+The example verifies:
+
+- Concurrent A/B consumption and positive consumption of A/B/M1/M2, including each
+  non-null domain baseline. Technical SG REQUIRE_APPROVAL remains unchanged.
+- Per group: expiry, baseline revocation, review revocation, missing required
+  domain, and separately changed **same SG domain** baseline/source/contract/analyzer
+  expectations all reject. The JSON includes actual per-domain eligibility codes
+  and technical decisions for these 32 negative evaluations.
+- A→B, A→M1 and M1→M2 evidence never cross-satisfy the new frozen expectation.
+- Existing GG `LocalHistory` accepts M2's real original GG bundle, then archives
+  M1's late completion but refuses its publication. This is actual GG self-bundle
+  history, not a new persistence API for aggregate specialist consumption.
+- Under the same M2 candidate, retained FG ALLOW and new GG eligibility cannot
+  substitute for an operation grant: the real `apply` call rejects the unavailable
+  grant reference without changing target bytes. An already-cancelled call with a
+  separate valid fixture grant also changes no target bytes and creates no intent.
+- Only a subsequent explicitly authenticated fixture operation grant advances the
+  isolated bare target. Another claimed operation loses authority and stays
+  RecoveryRequired. Disabling the executor rejects writes; reopened Applied and
+  unknown records and read-only eligibility survive unchanged.
+- Original captured files, the restored source repository and all four physical
+  worktree bytes are unchanged. The JSON records source/worktree hashes, actual
+  M2 target OID, operation ID, request digest, audit records and observed outcomes.
+
+Original FG fixture producer/review authority records are retained. GG's new
+baseline-approval port needs **additional new fixture-only records** binding each
+non-null domain baseline; these are not reconstructed production approvals or
+claims to authenticate the historical captures. Artifact SHA256 and stored ALLOW
+never become authority. Current CodeGuard native execution/parity is not rerun.
+
+The retained first-capture `invalidation.stdout.json` is historical context only;
+this example does not execute or rely on its original drift helper. GG's drift
+cases directly change independently frozen expectations in the same domain. FG's
+separately corrected drift helper at `7b3c3f4` has its own independent evidence and
+is not silently substituted into these retained bytes.
+
+This advances original task 5.5 without claiming hosted queue identity, real remote
+receipts, production rollout, fresh native execution, aggregate-specialist durable
+history, or a full new crash matrix for all four candidates. The six-process crash
+matrix and adapter rollout exercise remain their separate accepted slices; this
+example exercises same-M2 cancellation, local effect, executor disable and durable
+intent reopening. Task 5.5 remains unchecked pending review against the original
+complete joint acceptance requirements.

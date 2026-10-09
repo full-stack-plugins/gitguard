@@ -1,0 +1,1 @@
+{"task":"joint-queue","requirements":["demo:A","demo:B"],"base":"0b28b17245ec04d13126a1e97d33cca155f1eef5","group":"M1","members":["4d9110171961373d040645cba679c5e48479e3b0","7bdc690c52bc3a666029e95c2d4df0a1f078f75c"],"approved_baseline":"/workspace/guard-implementation-ledger/flowguard-joint-independent-capture/M1/specguard/baseline.json"}

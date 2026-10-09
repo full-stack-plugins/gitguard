@@ -1,0 +1,1 @@
+{"tool":"cargo","version":"1.99.0","protocol":"libtest-pretty-v1","target":"cross-guard-app:lib","features":[],"parameters":"tests::required_answer","environment":"linux-fixture-cargo-1.99"}

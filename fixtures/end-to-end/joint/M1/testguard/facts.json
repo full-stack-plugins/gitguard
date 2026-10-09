@@ -1,0 +1,1 @@
+{"apiVersion":"guard.partme.ai/v1alpha1","kind":"GuardFacts","analyzer":{"id":"testguard-local-evidence","version":"testguard.engine-map/v1"},"subject":{"id":"cross-guard-repo","snapshotDigest":"sha256:110308fddca3312082b8a4427e8e61e4255c911aeb4a6f910eb73ab6d43d481a"},"completeness":"complete","facts":[],"diagnostics":[]}

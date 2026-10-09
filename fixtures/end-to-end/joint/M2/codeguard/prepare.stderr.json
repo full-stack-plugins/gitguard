@@ -1,0 +1,1 @@
+{"apiVersion":"codeguard.transport/v1alpha1","kind":"GuardTransportDiagnostic","phase":"bound","code":"artifact_read_failed","exitCode":4}
