@@ -31,7 +31,7 @@
 
 **Interfaces:** `discover(root) -> RepositoryRef`；`resolve_subject(repo, request) -> FrozenSubject`；`scan_scope(subject, TaskScope) -> ChangeSet`。类型字段遵循 design 第3节；异常用 `PreflightDiagnostic`，不伪造 envelope。文件均待创建。
 
-- [ ] 1.1 在 `src/git/repository.rs`、`src/subject.rs` 与随切片引入的 `Cargo.toml` 实现稳定 repo/root/object-format 发现，固定 Rust/依赖版本并记录能力 ADR；`tests/repository.rs` 覆盖坏根、common Git dir、SHA-1/SHA-256 和未知算法，确认不以 origin URL 认证身份。（Requirement: Immutable repository and subject binding）
+- [x] 1.1 在 `src/git/repository.rs`、`src/subject.rs` 与随切片引入的 `Cargo.toml` 实现稳定 repo/root/object-format 发现，固定 Rust/依赖版本并记录能力 ADR；`tests/repository.rs` 覆盖坏根、common Git dir、SHA-1/SHA-256 和未知算法，确认不以 origin URL 认证身份。（Requirement: Immutable repository and subject binding）
 - [ ] 1.2 在 `src/git/runner.rs` 冻结 argv、环境/config 隔离、NUL 输出、时间/字节/进程树限制；`tests/runner_security.rs` 用恶意 helper/diff/hook/alternate、超时及令牌诊断 fixtures，断言无执行入口、无隐藏 fetch、无泄密及无 refs/index/worktree 修改。（Requirement: Bounded Git observation and semantic uncertainty）
 - [x] 1.3 在 `src/subject.rs` 实现 `FrozenSubject` 的 worktree/index/commit/tree-preview 区分、OID 实物校验和 snapshot digest；`tests/subjects.rs` 断言 dirty HEAD 不得充当权威候选、missing object 不生成 envelope、ref 运行中变化不被重新解释。（Requirement: Immutable repository and subject binding）
 - [ ] 1.4 在 `src/scope.rs` 与 `schemas/task-scope.schema.json` 冻结受保护 TaskScope、基线 immutable ref/digest 及 advisory 信任标记；`tests/scope_policy.rs` 验证候选删除/弱化策略不改变必查义务，Markdown accepted 不构成批准。（Requirement: Protected actual change scope）
