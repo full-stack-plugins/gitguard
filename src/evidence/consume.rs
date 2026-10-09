@@ -17,6 +17,7 @@ pub struct Consumption {
     pub(crate) candidate_digest: String,
     pub(crate) policy_digest: String,
     pub(crate) run_id: String,
+    pub(crate) reuse_digest: Option<String>,
 }
 impl Consumption {
     pub fn result(&self) -> &EligibilityResult {
@@ -140,5 +141,40 @@ pub fn consume(
         candidate_digest: candidate.binding_digest(),
         policy_digest: policy.content_digest(),
         run_id: envelope.run_id.clone(),
+        reuse_digest: None,
     })
+}
+
+/// Context frozen before provider evaluation. Digests are supplied by the trusted controller.
+pub struct ConsumptionContext<'a> {
+    pub key: &'a super::freshness::ReuseKey,
+    pub now: i64,
+    pub cause: Option<&'a str>,
+}
+/// Produce a result eligible for history completion under exactly this full input identity.
+pub fn consume_bound(
+    repo: &Repository,
+    candidate: &CandidateSnapshot,
+    bundle: &CheckBundle,
+    policy: &EligibilityPolicy,
+    provider: &dyn AuthorityProvider,
+    context: ConsumptionContext<'_>,
+) -> Result<Consumption, String> {
+    if context.key.candidate_digest != candidate.binding_digest()
+        || context.key.policy_digest != policy.content_digest()
+    {
+        return Err("consumption context mismatch".into());
+    }
+    let frozen_digest = context.key.digest().to_owned();
+    let mut result = consume(
+        repo,
+        candidate,
+        bundle,
+        policy,
+        provider,
+        context.now,
+        context.cause,
+    )?;
+    result.reuse_digest = Some(frozen_digest);
+    Ok(result)
 }

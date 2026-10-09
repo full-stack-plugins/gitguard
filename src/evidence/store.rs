@@ -56,6 +56,7 @@ impl LocalHistory {
             || ticket.run_id != consumption.run_id
             || ticket.key.candidate_digest != consumption.candidate_digest
             || ticket.key.policy_digest != consumption.policy_digest
+            || consumption.reuse_digest.as_deref() != Some(ticket.key.digest())
         {
             return Err("consumption does not match attempt".into());
         }

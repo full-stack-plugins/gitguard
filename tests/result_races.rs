@@ -1,7 +1,7 @@
 mod common;
 use common::evidence::*;
 use gitguard::evidence::{
-    consume::consume,
+    consume::{ConsumptionContext, consume, consume_bound},
     freshness::ReuseKey,
     store::{LocalHistory, StorageRequirement},
 };
@@ -25,12 +25,36 @@ fn newer_same_binding_attempt_defeats_late_allow_and_other_task_cannot_cross_sat
     let p = policy(&e.bundle);
     let authority = FixtureAuthority::new(p.clone());
     let old = store.begin(&k, 0, &e.bundle.envelope.run_id).unwrap();
-    let old_result = consume(&e.repo, &e.candidate, &e.bundle, &p, &authority, NOW, None).unwrap();
+    let old_result = consume_bound(
+        &e.repo,
+        &e.candidate,
+        &e.bundle,
+        &p,
+        &authority,
+        ConsumptionContext {
+            key: &k,
+            now: NOW,
+            cause: None,
+        },
+    )
+    .unwrap();
     e.bundle.envelope.run_id = "retry-run".into();
     let new = store.begin(&k, 1, "retry-run").unwrap();
     let mut revoked = FixtureAuthority::new(p.clone());
     revoked.revoked = true;
-    let blocked = consume(&e.repo, &e.candidate, &e.bundle, &p, &revoked, NOW, None).unwrap();
+    let blocked = consume_bound(
+        &e.repo,
+        &e.candidate,
+        &e.bundle,
+        &p,
+        &revoked,
+        ConsumptionContext {
+            key: &k,
+            now: NOW,
+            cause: None,
+        },
+    )
+    .unwrap();
     assert!(!blocked.result().eligible);
     store.complete(&new, &blocked).unwrap();
     store.publish(&new).unwrap();
@@ -86,14 +110,17 @@ fn tickets_from_another_store_cannot_publish_same_named_attempt() {
     let ta = a.begin(&k, 0, &e.bundle.envelope.run_id).unwrap();
     let tb = b.begin(&k, 0, &e.bundle.envelope.run_id).unwrap();
     let p = policy(&e.bundle);
-    let result = consume(
+    let result = consume_bound(
         &e.repo,
         &e.candidate,
         &e.bundle,
         &p,
         &FixtureAuthority::new(p.clone()),
-        NOW,
-        None,
+        ConsumptionContext {
+            key: &k,
+            now: NOW,
+            cause: None,
+        },
     )
     .unwrap();
     b.complete(&tb, &result).unwrap();
@@ -155,24 +182,30 @@ fn two_active_requirements_keep_independent_history_and_completion() {
         .begin(&second_key, 0, &second.envelope.run_id)
         .unwrap();
     let p1 = policy(&first.bundle);
-    let r1 = consume(
+    let r1 = consume_bound(
         &first.repo,
         &first.candidate,
         &first.bundle,
         &p1,
         &FixtureAuthority::new(p1.clone()),
-        NOW,
-        None,
+        ConsumptionContext {
+            key: &first_key,
+            now: NOW,
+            cause: None,
+        },
     )
     .unwrap();
-    let r2 = consume(
+    let r2 = consume_bound(
         &first.repo,
         &second_candidate,
         &second,
         &second_policy,
         &FixtureAuthority::new(second_policy.clone()),
-        NOW,
-        None,
+        ConsumptionContext {
+            key: &second_key,
+            now: NOW,
+            cause: None,
+        },
     )
     .unwrap();
     assert!(store.complete(&t2, &r1).is_err());
@@ -192,4 +225,95 @@ fn two_active_requirements_keep_independent_history_and_completion() {
         assert_eq!(store.history(&target).unwrap().len(), 1);
         assert_eq!(store.current(&target).unwrap().unwrap().run_id, run);
     }
+}
+
+#[test]
+fn review_completion_cannot_relabel_result_under_changed_dependency_key() {
+    let e = evidence(Enforcement::Advise, false, false);
+    let p = policy(&e.bundle);
+    let authority = FixtureAuthority::new(p.clone());
+    let old = consume(&e.repo, &e.candidate, &e.bundle, &p, &authority, NOW, None).unwrap();
+    let new_key = ReuseKey::new(
+        &e.repo,
+        &e.candidate,
+        &p,
+        &format!("sha256:{}", "c".repeat(64)),
+        &format!("sha256:{}", "d".repeat(64)),
+    )
+    .unwrap();
+    assert!(!key(&e).same_inputs(&new_key));
+    let store = LocalHistory::new(StorageRequirement::ProcessLocal).unwrap();
+    let ticket = store.begin(&new_key, 0, &e.bundle.envelope.run_id).unwrap();
+    assert!(
+        store.complete(&ticket, &old).is_err(),
+        "old consumption must not be recorded under changed dependency/config identity"
+    );
+}
+
+#[test]
+fn bound_result_cannot_move_between_dependency_or_configuration_keys() {
+    let e = evidence(Enforcement::Advise, false, false);
+    let p = policy(&e.bundle);
+    let authority = FixtureAuthority::new(p.clone());
+    let original_key = key(&e);
+    let original = consume_bound(
+        &e.repo,
+        &e.candidate,
+        &e.bundle,
+        &p,
+        &authority,
+        ConsumptionContext {
+            key: &original_key,
+            now: NOW,
+            cause: None,
+        },
+    )
+    .unwrap();
+    for (dependency, configuration) in [("c", "b"), ("a", "d")] {
+        let changed_key = ReuseKey::new(
+            &e.repo,
+            &e.candidate,
+            &p,
+            &format!("sha256:{}", dependency.repeat(64)),
+            &format!("sha256:{}", configuration.repeat(64)),
+        )
+        .unwrap();
+        let store = LocalHistory::new(StorageRequirement::ProcessLocal).unwrap();
+        let ticket = store
+            .begin(&changed_key, 0, &e.bundle.envelope.run_id)
+            .unwrap();
+        assert!(store.complete(&ticket, &original).is_err());
+        let fresh = consume_bound(
+            &e.repo,
+            &e.candidate,
+            &e.bundle,
+            &p,
+            &authority,
+            ConsumptionContext {
+                key: &changed_key,
+                now: NOW,
+                cause: None,
+            },
+        )
+        .unwrap();
+        store.complete(&ticket, &fresh).unwrap();
+        store.publish(&ticket).unwrap();
+    }
+    let mut wrong_policy = p.clone();
+    wrong_policy.action = "other-action".into();
+    assert!(
+        consume_bound(
+            &e.repo,
+            &e.candidate,
+            &e.bundle,
+            &wrong_policy,
+            &authority,
+            ConsumptionContext {
+                key: &original_key,
+                now: NOW,
+                cause: None
+            }
+        )
+        .is_err()
+    );
 }
