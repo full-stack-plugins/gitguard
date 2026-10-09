@@ -1,0 +1,13 @@
+# GitHub merge-group read-only profile
+
+This library adapter authenticates exact retained webhook bytes with HMAC-SHA256, checks explicit controller repository/installation/base-ref bindings, and maps an existing local SHA-1 commit into an advisory candidate. It does not fetch, synthesize a replacement candidate, publish checks or grant admission.
+
+Call `verify` with controller-held `Config` and `WebhookKey`, then `map_candidate` with controller-held `Mapping`. The mapping must supply task scope, ordered members, worktree identity, controller group identity and generation. Those values are not GitHub webhook fields and are never inferred from ref naming, sender login, delivery headers or body arrival order. Local Git verifies the head object and tree; missing ordered membership fails closed.
+
+`ReplayGuard::record` retains at most 256 distinct authenticated bodies/delivery identifiers per process. Capacity fails closed without eviction. A destroyed event withdraws only its exact group tuple. `is_current` requires prior recording and calls the external `CurrentLookup` port each time; missing, mismatched or unavailable current state cannot become current. Recording never selects current state. Persistence and authenticated current lookup are controller responsibilities. Restart-safe replay protection, webhook age, hosted admission and future atomic authority are not implemented.
+
+The supported body subset is pinned in `official-schema.json` to GitHub REST API description commit `7dee0622aeecf9df3c5060ca28c7a57ee5007804`. Repository and installation, optional upstream, are required here. Head/base refs are opaque full refs; IDs are lowercase SHA-1. Commit identity/tree and required metadata shape are checked; timestamp text is not a freshness clock or full RFC3339 validator. Unknown metadata is tolerated, duplicate JSON keys rejected. Event and delivery headers are not covered by the webhook body signature. This is a constrained profile, not a complete upstream schema validator.
+
+The tests use real local Git objects and locally signed official-shaped payloads, plus the independent [official HMAC test vector](https://docs.github.com/en/webhooks/using-webhooks/validating-webhook-deliveries). They do not claim a live GitHub delivery. Secret possession authenticates the body only; production secret provisioning, installation authorization, durable event handling, hosted current lookup, protected checks and receipt integration remain external or unimplemented. Task 5.1 remains unchecked.
+
+Run `cargo test --locked --offline --test github_protected_queue`. Related candidate and queue regression suites remain separate. The existing packaged source pin 85a9743 does not contain this adapter.

@@ -262,3 +262,8 @@ Updated the existing preparer's consumer pin from retained df8d5cc to fixed `85a
 ### Independently accepted original task 5.4 — 26/28
 
 Root accepted the local scope after fixed `85a9743023de788d91a370601ad2b7d5a649517a` required-check dispatch review and separate `2dd5c204120620c5c35f269089401b75ac0829ad` preparer/package review, combined with the earlier actual advisory/shadow/opt-in and independent adapter/executor rollback evidence. The new package contains the 85a9743 caller; the retained df8 package does not. Independent reports: ledger `gitguard-required-rollout-independent-review.md`, `gitguard-package-85a9743-independent-review.md` and its verification JSON. No production crate, hosted enforcement or atomic future authority across providers is implied. Only tasks 5.1 and 5.2 remain unchecked; GitGuard is 26/28.
+
+
+### Task 5.1 authenticated GitHub read-only profile — partial
+
+Added exact-byte HMAC verification, official-schema-bound merge-group parsing, explicit controller mapping to real local Git objects, bounded replay/withdrawal memory, and a mandatory external current-lookup port. No request-supplied authenticated flag, guessed membership, local replacement head or hosted admission is accepted. Five focused tests cover the official independent HMAC vector, candidate mapping, signed malformed/binding rejection, replay/delayed withdrawal/current lookup, and memory exhaustion; six candidate/queue regressions also pass. Scoped Clippy passes. RED/GREEN/capture evidence is in ledger `gitguard-github-*`; supported subset and limitations are in `adapters/github/README.md`. Task 5.1 remains unchecked and total remains 26/28. Source package 85a9743 is unchanged.

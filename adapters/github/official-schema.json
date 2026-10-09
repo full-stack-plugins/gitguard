@@ -1,0 +1,209 @@
+{
+  "source_url": "https://raw.githubusercontent.com/github/rest-api-description/7dee0622aeecf9df3c5060ca28c7a57ee5007804/descriptions/api.github.com/api.github.com.json",
+  "commit": "7dee0622aeecf9df3c5060ca28c7a57ee5007804",
+  "full_source_sha256": "ba5ddc1eeeede9f3858abd96325359891f38a2bd8e20fd111abf4230741db194",
+  "schemas": {
+    "merge-group": {
+      "type": "object",
+      "title": "Merge Group",
+      "description": "A group of pull requests that the merge queue has grouped together to be merged.",
+      "properties": {
+        "head_sha": {
+          "description": "The SHA of the merge group.",
+          "type": "string"
+        },
+        "head_ref": {
+          "description": "The full ref of the merge group.",
+          "type": "string"
+        },
+        "base_sha": {
+          "description": "The SHA of the merge group's parent commit.",
+          "type": "string"
+        },
+        "base_ref": {
+          "description": "The full ref of the branch the merge group will be merged into.",
+          "type": "string"
+        },
+        "head_commit": {
+          "$ref": "#/components/schemas/simple-commit"
+        }
+      },
+      "required": [
+        "head_sha",
+        "head_ref",
+        "base_sha",
+        "base_ref",
+        "head_commit"
+      ]
+    },
+    "webhook-merge-group-checks-requested": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "enum": [
+            "checks_requested"
+          ]
+        },
+        "installation": {
+          "$ref": "#/components/schemas/simple-installation"
+        },
+        "merge_group": {
+          "$ref": "#/components/schemas/merge-group"
+        },
+        "organization": {
+          "$ref": "#/components/schemas/organization-simple-webhooks"
+        },
+        "repository": {
+          "$ref": "#/components/schemas/repository-webhooks"
+        },
+        "sender": {
+          "$ref": "#/components/schemas/simple-user"
+        }
+      },
+      "required": [
+        "action",
+        "merge_group"
+      ]
+    },
+    "webhook-merge-group-destroyed": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "enum": [
+            "destroyed"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "description": "Explains why the merge group is being destroyed. The group could have been merged, removed from the queue (dequeued), or invalidated by an earlier queue entry being dequeued (invalidated).",
+          "enum": [
+            "merged",
+            "invalidated",
+            "dequeued"
+          ]
+        },
+        "installation": {
+          "$ref": "#/components/schemas/simple-installation"
+        },
+        "merge_group": {
+          "$ref": "#/components/schemas/merge-group"
+        },
+        "organization": {
+          "$ref": "#/components/schemas/organization-simple-webhooks"
+        },
+        "repository": {
+          "$ref": "#/components/schemas/repository-webhooks"
+        },
+        "sender": {
+          "$ref": "#/components/schemas/simple-user"
+        }
+      },
+      "required": [
+        "action",
+        "merge_group"
+      ]
+    },
+    "simple-commit": {
+      "title": "Simple Commit",
+      "description": "A commit.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "SHA for the commit",
+          "example": "7638417db6d59f3c431d3e1f261cc637155684cd"
+        },
+        "tree_id": {
+          "type": "string",
+          "description": "SHA for the commit's tree"
+        },
+        "message": {
+          "description": "Message describing the purpose of the commit",
+          "example": "Fix #42",
+          "type": "string"
+        },
+        "timestamp": {
+          "description": "Timestamp of the commit",
+          "example": "2014-08-09T08:02:04+12:00",
+          "format": "date-time",
+          "type": "string"
+        },
+        "author": {
+          "type": "object",
+          "description": "Information about the Git author",
+          "properties": {
+            "name": {
+              "description": "Name of the commit's author",
+              "example": "Monalisa Octocat",
+              "type": "string"
+            },
+            "email": {
+              "description": "Git email address of the commit's author",
+              "example": "monalisa.octocat@example.com",
+              "type": "string",
+              "format": "email"
+            }
+          },
+          "required": [
+            "name",
+            "email"
+          ],
+          "nullable": true
+        },
+        "committer": {
+          "type": "object",
+          "description": "Information about the Git committer",
+          "properties": {
+            "name": {
+              "description": "Name of the commit's committer",
+              "example": "Monalisa Octocat",
+              "type": "string"
+            },
+            "email": {
+              "description": "Git email address of the commit's committer",
+              "example": "monalisa.octocat@example.com",
+              "type": "string",
+              "format": "email"
+            }
+          },
+          "required": [
+            "name",
+            "email"
+          ],
+          "nullable": true
+        }
+      },
+      "required": [
+        "id",
+        "tree_id",
+        "message",
+        "timestamp",
+        "author",
+        "committer"
+      ]
+    },
+    "simple-installation": {
+      "title": "Simple Installation",
+      "description": "The GitHub App installation. Webhook payloads contain the `installation` property when the event is configured\nfor and sent to a GitHub App. For more information,\nsee \"[Using webhooks with GitHub Apps](https://docs.github.com/apps/creating-github-apps/registering-a-github-app/using-webhooks-with-github-apps).\"",
+      "type": "object",
+      "properties": {
+        "id": {
+          "description": "The ID of the installation.",
+          "type": "integer",
+          "example": 1
+        },
+        "node_id": {
+          "description": "The global node ID of the installation.",
+          "type": "string",
+          "example": "MDQ6VXNlcjU4MzIzMQ=="
+        }
+      },
+      "required": [
+        "id",
+        "node_id"
+      ]
+    }
+  }
+}
