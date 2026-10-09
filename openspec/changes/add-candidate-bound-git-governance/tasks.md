@@ -56,7 +56,7 @@
 - [x] 3.1 在 `src/evidence/projection.rs`、`schemas/git-domain-result.schema.json` 接入 GE-CONTRACT/ADAPTER 的固定版本 mapping；`tests/projection_vectors.rs` 校验 forbid_relation、enforce/review/advise、unknown field/version 拒绝和当前 engine 对象不能接纳 Git 字段。（Requirement: Strict protocol projection and version boundary）
 - [x] 3.2 在 `src/evidence/envelope.rs`、`src/cli.rs` 冻结 versioned check stdout/file/stderr、0/2/3/4 与取消契约（明确是否提供 `--report`）；`tests/cli_outcomes.rs` 覆盖 pre-binding 无 envelope、bound error/cancelled=null、partial=BLOCK/INDETERMINATE、envelope/report decision 一致和旧输出文件不能充当成功。（Requirement: Honest completion errors and decisions）
 - [ ] 3.3 在 `src/evidence/consume.rs` 实现 GE-TRUST 的来源/引用 digest/同候选/coverage/批准基线核验端口并接入按需领域产物；`tests/evidence_trust.rs` 拒绝伪造 issuer、仅可重算报告、旧 baseline/PR-head，确认批准不改写 REQUIRE_APPROVAL、不修复 partial/error。（Requirement: Authenticated specialist evidence and baseline）
-- [ ] 3.4 在 `src/evidence/store.rs` 选择事务唯一键/generation CAS 存储方案并建立 ADR，固定全量复用 key 与 append-only 历史；`tests/result_races.rs` 断言迟到旧 ALLOW 不能覆盖新 BLOCK、两需求不互相满足、取消重试有新 runId。（Requirement: Append-only freshness and late completion control）
+- [x] 3.4 在 `src/evidence/store.rs` 选择事务唯一键/generation CAS 存储方案并建立 ADR，固定全量复用 key 与 append-only 历史；`tests/result_races.rs` 断言迟到旧 ALLOW 不能覆盖新 BLOCK、两需求不互相满足、取消重试有新 runId。（Requirement: Append-only freshness and late completion control）
 - [ ] 3.5 在 `src/evidence/freshness.rs`、`src/evidence/audit.rs` 实现 binding/字节/依赖/规则/基线/analyzer/config/coverage 与 expiry/revocation 的资格失效，记录身份/原因/因果时间并配置访问/retention；`tests/freshness_audit.rs` 覆盖每类漂移及脱敏/受限删除，原报告不可篡改。（Requirement: Append-only freshness and late completion control；Requirement: Audited compatibility rollout and extensible ports）
 - [ ] 3.6 在 `adapters/gitflow/compatibility.md`、`adapters/gitflow/` 调查并固定外部 provider 版本、命令/flags/report/退出语义，再实现 opt-in 映射；`tests/gitflow_differential.rs` 保存合法/违规/unknown/error 差分并逐项裁决，未核验能力不启用，原 CLI/CodeGuard native 数字退出码不改。（Requirement: Audited compatibility rollout and extensible ports）
 
@@ -83,3 +83,5 @@
 ## Local reviewed acceptance checkpoint
 
 Independently reviewed local implementation accepts tasks 1.3, 1.5, 1.6, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6. See docs/implementation-progress.md for evidence. These checkmarks cover the explicitly supported local profiles, not production authentication, hosted enforcement or release. Other tasks remain pending.
+
+Reviewed checkpoint: 13/28 accepted after independent re-review of55718e0, including3.4 for the documented process-local history/CAS profile. See /workspace/guard-implementation-ledger/gitguard-reuse-fix-independent-review.md. Durable backenddf2f756 remains separately under review.
