@@ -1,4 +1,4 @@
-use super::runner::{Limits, run};
+use super::runner::{Limits, run, verify_integrity};
 use crate::{Diagnostic, Result};
 use std::{
     fs,
@@ -184,11 +184,7 @@ impl Repository {
             &mut 0,
         )?;
         // Check actual object hashes, not merely claimed filenames/types.
-        run(
-            store.path(),
-            &["fsck", "--full", "--strict", "--no-reflogs"],
-            limits,
-        )?;
+        verify_integrity(store.path(), &git_version, limits)?;
         Ok(Self {
             root,
             common,

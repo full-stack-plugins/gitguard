@@ -2,7 +2,7 @@
 use crate::{
     Repository,
     execution::grant::{GrantAction, GrantExpectation},
-    git::runner::{Limits, run},
+    git::runner::{Limits, run, verify_integrity},
     subject::hash,
 };
 use std::{
@@ -265,7 +265,8 @@ impl ProtectedBareTarget {
         {
             return Err(PlatformError::Binding);
         }
-        self.git(&["fsck", "--full", "--strict", "--no-reflogs"])?;
+        verify_integrity(&self.path(), repository.git_version(), Limits::default())
+            .map_err(|_| PlatformError::Unavailable)?;
         if self.git(&["cat-file", "-t", expected.candidate_oid()])? != b"commit\n" {
             return Err(PlatformError::Binding);
         }
