@@ -37,3 +37,6 @@ pub mod platform_write;
 
 #[cfg(target_os = "linux")]
 pub mod reconcile;
+
+#[cfg(target_os = "linux")]
+pub mod worktree_apply;
