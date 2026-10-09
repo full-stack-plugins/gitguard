@@ -7,3 +7,5 @@ pub mod store;
 
 #[cfg(target_os = "linux")]
 pub mod durable;
+
+pub mod specialists;

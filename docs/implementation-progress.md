@@ -169,3 +169,33 @@ Old TaskScope/candidate schemas and CLI remain advisory with null baseline. A de
 ## 2026-10-09 reviewed local executor
 
 Root independently accepted task 4.3 after snapshots 5085593 (local Push transfer) and 0110787 (independent detached CreateWorktree). Evidence: ledger gitguard-transfer/worktree logs and root review, including extra binary/non-UTF8/executable-file and symlink rejection probes. Acceptance is Linux private local targets, regular files, fixture-authority validation; no network/linked-worktree/production-auth claim. GitGuard 22/28, cross-project 150/193. Task 4.5 remains unchecked; durable acknowledgement 10c2e2c is a reviewed sub-slice, not the complete recovery task.
+
+## Controller-frozen specialist consumption (pending independent review)
+
+The additive `evidence::specialists::PreparedSpecialistConsumption` port consumes a
+controller-frozen, nonempty required producer set through GE eligibility. Common
+repo/task/worktree/requirements/candidate/base/merge identity must match the real
+Git candidate; each domain keeps its independently frozen source digest, baseline,
+coverage, producer and contract policy. The existing Git candidate and TaskScope
+schemas still reject non-null baseline, and the existing self-bundle consumer is
+unchanged. There is no FlowGuard dependency or rule duplication.
+
+Every non-null specialist baseline requires an explicit controller-selected
+approval reference and separate policy binding that same domain and contract.
+Every consumption queries the authority provider again and uses GE
+`validate_approval_record` for baseline freshness and `evaluate_eligibility` for
+producer/review eligibility. An owned immutable byte map resolves exact artifact
+references; it never reads URI locations. Missing required items, changed bindings,
+expired/revoked approval, untrusted issuer or changed artifact references cannot
+qualify. Technical REQUIRE_APPROVAL/report bytes remain unchanged; approval cannot
+repair technical BLOCK, incomplete or failed evaluation.
+
+Tests restore the retained real five-producer candidate bundle and replay its
+unchanged SG/AG/CG/TG/GG evidence with independently frozen per-domain expectations.
+New test-only baseline/review/producer authority records are explicitly fixtures,
+not authentication of the historical capture or a production trust service. This
+port produces no execution grant and is not wired into execution dispatch. A
+protected controller must establish trustworthy domain sources, choose immutable
+bytes and supply authenticated authority records; content hashes alone do not do
+that. Existing `UnavailableAuthority` is still the safe unsupported provider.
+Task 3.3 remains unchecked until independent acceptance of the supported profile.
