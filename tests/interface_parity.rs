@@ -252,7 +252,7 @@ fn mcp_lifecycle_unknown_tools_and_versions_are_rejected() {
             .get("error")
             .is_some()
     );
-    for (version, capabilities) in [("future", json!({})), ("2025-11-25", json!({"write":true}))] {
+    for (version, capabilities) in [("", json!({})), ("2025-11-25", json!({"write":true}))] {
         let init = json!({"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":version,"capabilities":capabilities,"clientInfo":{"name":"test","version":"1"}}});
         assert!(
             session
@@ -329,4 +329,49 @@ fn binary_error_transport_is_explicit_and_does_not_expose_input() {
     let reply=session.handle(br#"{"jsonrpc":"2.0","id":8,"method":"tools/call","params":{"name":"gitguard_check","arguments":{"version":"gitguard.api/v1alpha1","capability":"check","request":{}}}}"#,&c).unwrap();
     assert_eq!(reply["result"]["isError"], true);
     assert!(reply["result"]["structuredContent"]["bundle"].is_null());
+}
+#[test]
+fn mcp_negotiates_supported_version_when_client_requests_another() {
+    let mut session = gitguard::mcp::Session::default();
+    let cancel = std::sync::atomic::AtomicBool::new(false);
+    let init = json!({"jsonrpc":"2.0","id":10,"method":"initialize","params":{"protocolVersion":"2099-01-01","capabilities":{},"clientInfo":{"name":"future-client","version":"1"}}});
+    let reply = session
+        .handle(&serde_json::to_vec(&init).unwrap(), &cancel)
+        .unwrap();
+    assert_eq!(reply["result"]["protocolVersion"], "2025-11-25");
+    assert!(
+        session
+            .handle(
+                br#"{"jsonrpc":"2.0","id":11,"method":"tools/list"}"#,
+                &cancel
+            )
+            .unwrap()
+            .get("error")
+            .is_some()
+    );
+    assert!(
+        session
+            .handle(
+                br#"{"jsonrpc":"2.0","method":"notifications/initialized"}"#,
+                &cancel
+            )
+            .is_none()
+    );
+    assert!(
+        session
+            .handle(
+                br#"{"jsonrpc":"2.0","id":12,"method":"tools/list"}"#,
+                &cancel
+            )
+            .unwrap()
+            .get("result")
+            .is_some()
+    );
+    assert_eq!(
+        gitguard::api::dispatch(
+            br#"{"version":"future","capability":"capabilities"}"#,
+            &cancel
+        )["diagnostic"],
+        "unsupported_version"
+    );
 }

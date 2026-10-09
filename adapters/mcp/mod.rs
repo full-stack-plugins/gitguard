@@ -94,7 +94,7 @@ impl Session {
                     Ok(v) => v,
                     Err(_) => return Some(failure(id, -32602, "invalid initialize")),
                 };
-            if init.protocol_version != PROTOCOL_VERSION
+            if init.protocol_version.is_empty()
                 || init.capabilities != json!({})
                 || init.client_info.name.is_empty()
                 || init.client_info.version.is_empty()
@@ -102,7 +102,7 @@ impl Session {
                 return Some(failure(
                     id,
                     -32602,
-                    "unsupported version or capability profile",
+                    "unsupported capability profile or missing version",
                 ));
             }
             self.initialized = true;
