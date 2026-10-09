@@ -295,7 +295,7 @@ impl ProtectedBareTarget {
         {
             return Err(PlatformError::Binding);
         }
-        if req.action == GrantAction::Merge {
+        if matches!(req.action, GrantAction::Merge | GrantAction::Push) {
             self.git(&[
                 "merge-base",
                 "--is-ancestor",

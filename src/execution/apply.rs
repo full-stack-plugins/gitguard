@@ -63,7 +63,7 @@ fn apply_inner(
     let expected = context.session.expectation();
     if !matches!(
         expected.request().action,
-        GrantAction::CreateBranch | GrantAction::Merge
+        GrantAction::CreateBranch | GrantAction::Merge | GrantAction::Push
     ) {
         return Err(ApplyError::Unsupported);
     }

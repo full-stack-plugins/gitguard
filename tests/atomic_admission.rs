@@ -556,3 +556,207 @@ fn prepared_operation_cannot_be_redirected_to_another_bare_directory() {
     );
     assert!(apply(&context, &target).is_ok());
 }
+
+#[test]
+fn local_push_requires_its_own_grant_and_never_replays() {
+    let e = evidence(Enforcement::Advise, false, false);
+    let before = e.source.state();
+    let d = bare(&e);
+    let marker = d.path().join("hook-ran");
+    std::fs::write(
+        d.path().join("hooks/reference-transaction"),
+        format!("#!/bin/sh\necho unsafe > {}\n", marker.display()),
+    )
+    .unwrap();
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(
+            d.path().join("hooks/reference-transaction"),
+            std::fs::Permissions::from_mode(0o700),
+        )
+        .unwrap();
+    }
+    let target = ProtectedBareTarget::open(d.path(), "repo").unwrap();
+    let root = tempfile::Builder::new()
+        .permissions(std::fs::Permissions::from_mode(0o700))
+        .prefix(".apply-intent-")
+        .tempdir_in(env!("CARGO_MANIFEST_DIR"))
+        .unwrap();
+    let intents = IntentStore::create(root.path()).unwrap();
+    let (session, authority) = session(&e, GrantAction::Push, "refs/heads/main", "operation");
+    let cancel = AtomicBool::new(false);
+    let config = ExecutionConfig { enabled: true };
+    let mut context = ApplyContext {
+        config: &config,
+        repository: &e.repo,
+        candidate: &e.candidate,
+        session: &session,
+        authority: &authority,
+        clock: &Clock,
+        grant_reference: "fixture:grant",
+        intents: &intents,
+        cancel: &cancel,
+    };
+    let mut wrong_action = Authority(authority.0.clone());
+    wrong_action.0.action = GrantAction::Merge;
+    if cfg!(feature = "privileged-execution") {
+        context.authority = &wrong_action;
+        assert!(matches!(
+            apply(&context, &target),
+            Err(ApplyError::Authority)
+        ));
+        context.authority = &authority;
+    }
+    let result = apply(&context, &target);
+    if cfg!(feature = "privileged-execution") {
+        assert_eq!(result.unwrap().candidate_oid(), e.candidate.candidate_oid());
+        assert_eq!(
+            common::git(d.path(), &["rev-parse", "refs/heads/main"]),
+            e.candidate.candidate_oid()
+        );
+        assert!(apply(&context, &target).is_err());
+    } else {
+        assert!(matches!(result, Err(ApplyError::Disabled)));
+        assert_eq!(
+            common::git(d.path(), &["rev-parse", "refs/heads/main"]),
+            e.source.base
+        );
+    }
+    assert!(!marker.exists());
+    assert_eq!(e.source.state(), before);
+}
+
+#[cfg(feature = "privileged-execution")]
+#[test]
+fn local_push_rejects_non_fast_forward() {
+    let mut e = evidence(Enforcement::Advise, false, false);
+    let tree = common::git(e.source.path(), &["rev-parse", "HEAD^{tree}"]);
+    let unrelated = common::git(
+        e.source.path(),
+        &["commit-tree", &tree, "-m", "unrelated root"],
+    );
+    e.source.base = unrelated.clone();
+    let d = bare(&e);
+    let target = ProtectedBareTarget::open(d.path(), "repo").unwrap();
+    let root = tempfile::Builder::new()
+        .permissions(std::fs::Permissions::from_mode(0o700))
+        .prefix(".apply-intent-")
+        .tempdir_in(env!("CARGO_MANIFEST_DIR"))
+        .unwrap();
+    let intents = IntentStore::create(root.path()).unwrap();
+    let initial = std::fs::read(root.path().join("intent.json")).unwrap();
+    let (session, authority) = session(&e, GrantAction::Push, "refs/heads/main", "op");
+    let cancel = AtomicBool::new(false);
+    let config = ExecutionConfig { enabled: true };
+    let context = ApplyContext {
+        config: &config,
+        repository: &e.repo,
+        candidate: &e.candidate,
+        session: &session,
+        authority: &authority,
+        clock: &Clock,
+        grant_reference: "fixture",
+        intents: &intents,
+        cancel: &cancel,
+    };
+    assert!(matches!(apply(&context, &target), Err(ApplyError::Target)));
+    assert_eq!(
+        common::git(d.path(), &["rev-parse", "refs/heads/main"]),
+        unrelated
+    );
+    assert_eq!(
+        std::fs::read(root.path().join("intent.json")).unwrap(),
+        initial
+    );
+}
+
+#[cfg(feature = "privileged-execution")]
+#[test]
+fn local_push_concurrent_cas_has_one_winner() {
+    use std::sync::{
+        Barrier,
+        atomic::{AtomicUsize, Ordering},
+    };
+    struct Wait<'a> {
+        record: OperationGrant,
+        barrier: &'a Barrier,
+        calls: AtomicUsize,
+    }
+    impl GrantAuthority for Wait<'_> {
+        fn adapter_id(&self) -> &str {
+            "fixture"
+        }
+        fn authenticate(&self, _: &str) -> Result<OperationGrant, PortError> {
+            if self.calls.fetch_add(1, Ordering::SeqCst) == 1 {
+                self.barrier.wait();
+            }
+            Ok(self.record.clone())
+        }
+    }
+    let e = evidence(Enforcement::Advise, false, false);
+    let d = bare(&e);
+    let target = ProtectedBareTarget::open(d.path(), "repo").unwrap();
+    let root = tempfile::Builder::new()
+        .permissions(std::fs::Permissions::from_mode(0o700))
+        .prefix(".apply-intent-")
+        .tempdir_in(env!("CARGO_MANIFEST_DIR"))
+        .unwrap();
+    let intents = IntentStore::create(root.path()).unwrap();
+    let root2 = tempfile::Builder::new()
+        .permissions(std::fs::Permissions::from_mode(0o700))
+        .prefix(".apply-intent-")
+        .tempdir_in(env!("CARGO_MANIFEST_DIR"))
+        .unwrap();
+    let intents2 = IntentStore::create(root2.path()).unwrap();
+    let (s1, a1) = session(&e, GrantAction::Push, "refs/heads/main", "one");
+    let (s2, a2) = session(&e, GrantAction::Push, "refs/heads/main", "two");
+    let barrier = Barrier::new(2);
+    let a1 = Wait {
+        record: a1.0,
+        barrier: &barrier,
+        calls: AtomicUsize::new(0),
+    };
+    let a2 = Wait {
+        record: a2.0,
+        barrier: &barrier,
+        calls: AtomicUsize::new(0),
+    };
+    let cancel = AtomicBool::new(false);
+    let config = ExecutionConfig { enabled: true };
+    let (s1, s2, a1, a2) = (&s1, &s2, &a1, &a2);
+    let results = std::thread::scope(|scope| {
+        let run = |session, authority: &dyn GrantAuthority, intents: &IntentStore| {
+            apply(
+                &ApplyContext {
+                    config: &config,
+                    repository: &e.repo,
+                    candidate: &e.candidate,
+                    session,
+                    authority,
+                    clock: &Clock,
+                    grant_reference: "fixture",
+                    intents,
+                    cancel: &cancel,
+                },
+                &target,
+            )
+            .is_ok()
+        };
+        let i1 = &intents;
+        let i2 = &intents2;
+        let x = scope.spawn(move || run(s1, a1, i1));
+        let y = scope.spawn(move || run(s2, a2, i2));
+        [x.join().unwrap(), y.join().unwrap()]
+    });
+    for root in [&root, &root2] {
+        let j: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(root.path().join("intent.json")).unwrap())
+                .unwrap();
+        assert_eq!(j["events"][1]["state"], "attempt_recorded");
+    }
+    assert_eq!(results.into_iter().filter(|b| *b).count(), 1);
+    assert_eq!(
+        common::git(d.path(), &["rev-parse", "refs/heads/main"]),
+        e.candidate.candidate_oid()
+    );
+}
