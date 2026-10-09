@@ -24,11 +24,14 @@ impl From<std::io::Error> for Diagnostic {
         Self::InvalidRepository
     }
 }
+pub mod api;
 pub mod candidate;
 pub mod cli;
 pub mod conflicts;
 pub mod evidence;
 pub mod execution;
+#[path = "../adapters/mcp/mod.rs"]
+pub mod mcp;
 pub mod preflight;
 pub mod scope;
 pub mod subject;

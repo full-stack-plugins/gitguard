@@ -18,7 +18,23 @@ fn main() {
     std::process::exit(code)
 }
 fn run() -> Result<i32, ()> {
-    if std::env::args().skip(1).collect::<Vec<_>>() != ["check"] {
+    let args = std::env::args().skip(1).collect::<Vec<_>>();
+    if args == ["api"] {
+        let bytes = gitguard::api::read_bounded(std::io::stdin()).map_err(|_| ())?;
+        let result = gitguard::api::dispatch(&bytes, &CANCELLED);
+        serde_json::to_writer(std::io::stdout().lock(), &result).map_err(|_| ())?;
+        return Ok(result["exitCode"].as_i64().unwrap_or(4) as i32);
+    }
+    if args == ["mcp-stdio"] {
+        gitguard::mcp::serve(
+            std::io::stdin().lock(),
+            std::io::stdout().lock(),
+            &CANCELLED,
+        )
+        .map_err(|_| ())?;
+        return Ok(0);
+    }
+    if args != ["check"] {
         return Err(());
     }
     // Cooperative cancellation at observation boundaries; no Git write capability exists.

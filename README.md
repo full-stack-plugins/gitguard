@@ -43,3 +43,8 @@ Native `guard.partme.ai/v1alpha1` remains unchanged: strict GuardContract/GuardF
 The official gitflow-plugin was inspected and exercised read-only at a pinned commit: [compatibility survey](adapters/gitflow/compatibility.md). Its exit semantics differ from GitGuard. No opt-in adapter or replacement claim is enabled; native interfaces are unchanged.
 
 Remaining work includes protected baseline provenance, production provider integration, further process/filesystem hardening, full Gitflow differential adaptation, versioned MCP/API, hosted protections and separately reviewed write authorization/recovery. [Architecture](docs/architecture.md) and [technical design](docs/technical-design.md) describe this broader target; their future capabilities are not current product claims. [Integration contract](docs/integration-contract.md) and [dependency roadmap](openspec/guard-roadmap.md) explain shared boundaries.
+
+Versioned local read-only adapters are available through `gitguard api` and
+`gitguard mcp-stdio`; the original `gitguard check` remains available. See the
+[CLI/API/MCP contract](docs/read-only-interface-ports.md) for supported capabilities
+and explicit write/credential restrictions. This does not grant Git mutation authority.
