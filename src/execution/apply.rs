@@ -95,6 +95,8 @@ fn apply_inner(
     if context.cancel.load(Ordering::SeqCst) {
         return Err(ApplyError::Cancelled);
     }
+    #[cfg(test)]
+    crash_checkpoint("before-claim");
     let reservation = context
         .intents
         .claim(&prepared)
@@ -119,9 +121,13 @@ fn apply_inner(
                 return Err(ApplyError::Cancelled);
             }
         }
+        #[cfg(test)]
+        crash_checkpoint("before-cas");
         target
             .compare_and_swap(expected)
             .map_err(|_| ApplyError::Target)?;
+        #[cfg(test)]
+        crash_checkpoint("after-cas");
         after_cas()?;
         if context.cancel.load(Ordering::SeqCst) {
             return Err(ApplyError::Cancelled);
@@ -132,15 +138,29 @@ fn apply_inner(
         let _ = context.intents.mark_uncertain(reservation);
         return Err(ApplyError::RecoveryRequired);
     }
+    #[cfg(test)]
+    crash_checkpoint("before-ack");
     if context.intents.mark_applied(&reservation).is_err() {
         let _ = context.intents.mark_uncertain(reservation);
         return Err(ApplyError::RecoveryRequired);
     }
+    #[cfg(test)]
+    crash_checkpoint("after-ack");
     Ok(LocalCasReceipt {
         candidate_oid: expected.candidate_oid().into(),
         operation_id: expected.operation_id().into(),
         request_digest: prepared.request_digest().into(),
     })
+}
+#[cfg(test)]
+fn crash_checkpoint(point: &str) {
+    if std::env::var("GG_APPLY_TEST_CRASH").as_deref() == Ok(point) {
+        // The worker's actual process dies without stack unwinding or TempDir cleanup.
+        unsafe {
+            libc::kill(libc::getpid(), libc::SIGKILL);
+        }
+        unreachable!("SIGKILL must terminate the fixture worker");
+    }
 }
 #[cfg(all(test, feature = "privileged-execution"))]
 mod tests {
@@ -199,9 +219,14 @@ mod tests {
             Ok(20)
         }
     }
+    fn fixture_root() -> std::path::PathBuf {
+        std::env::var_os("GG_APPLY_TEST_ROOT")
+            .map(std::path::PathBuf::from)
+            .unwrap_or_else(|| env!("CARGO_MANIFEST_DIR").into())
+    }
     #[test]
     fn actual_cas_then_delivery_failure_keeps_uncertainty_and_does_not_undo() {
-        let source = tempfile::tempdir().unwrap();
+        let source = tempfile::tempdir_in(fixture_root()).unwrap();
         git(source.path(), &["init", "-q"]);
         std::fs::write(source.path().join("a"), "base").unwrap();
         git(source.path(), &["add", "a"]);
@@ -271,7 +296,7 @@ mod tests {
         );
         let bare = tempfile::Builder::new()
             .permissions(std::fs::Permissions::from_mode(0o700))
-            .tempdir()
+            .tempdir_in(fixture_root())
             .unwrap();
         git(bare.path(), &["init", "--bare", "-q"]);
         copy(
@@ -283,7 +308,7 @@ mod tests {
         let root = tempfile::Builder::new()
             .permissions(std::fs::Permissions::from_mode(0o700))
             .prefix(".apply-unit-")
-            .tempdir_in(env!("CARGO_MANIFEST_DIR"))
+            .tempdir_in(fixture_root())
             .unwrap();
         let intents = IntentStore::create(root.path()).unwrap();
         let config = ExecutionConfig { enabled: true };
@@ -299,6 +324,27 @@ mod tests {
             intents: &intents,
             cancel: &cancel,
         };
+        if std::env::var_os("GG_APPLY_TEST_ROOT").is_some() {
+            std::fs::write(
+                fixture_root().join("fixture.json"),
+                serde_json::to_vec(&serde_json::json!({
+                    "source": source.path(), "target": bare.path(), "intents": root.path(),
+                    "base": base, "candidate": candidate,
+                }))
+                .unwrap(),
+            )
+            .unwrap();
+            if std::env::var("GG_APPLY_TEST_CRASH").as_deref() == Ok("cancel-after-cas") {
+                let result = apply_inner(&context, &target, || {
+                    context.cancel.store(true, Ordering::SeqCst);
+                    Ok(())
+                });
+                assert!(matches!(result, Err(ApplyError::RecoveryRequired)));
+                std::process::exit(82);
+            }
+            let _ = apply(&context, &target);
+            panic!("worker must crash at the requested checkpoint");
+        }
         assert!(matches!(
             apply_inner(&context, &target, || Err(ApplyError::RecoveryRequired)),
             Err(ApplyError::RecoveryRequired)
@@ -328,5 +374,114 @@ mod tests {
             RecoveryState::RecoveryRequired
         );
         assert_eq!(git(bare.path(), &["rev-parse", "refs/heads/main"]), later);
+    }
+    #[test]
+    fn real_process_crash_matrix_preserves_unknown_or_ack_after_target_advances() {
+        use crate::execution::reconcile::{RecoveryState, reconcile};
+        for point in [
+            "before-claim",
+            "before-cas",
+            "after-cas",
+            "before-ack",
+            "after-ack",
+            "cancel-after-cas",
+        ] {
+            let fixture = tempfile::Builder::new()
+                .permissions(std::fs::Permissions::from_mode(0o700))
+                .tempdir_in(env!("CARGO_MANIFEST_DIR"))
+                .unwrap();
+            let output = Command::new(std::env::current_exe().unwrap())
+                .args(["--exact", "execution::apply::tests::actual_cas_then_delivery_failure_keeps_uncertainty_and_does_not_undo", "--nocapture"])
+                .env("GG_APPLY_TEST_ROOT", fixture.path()).env("GG_APPLY_TEST_CRASH", point)
+                .output().unwrap();
+            use std::os::unix::process::ExitStatusExt;
+            if point == "cancel-after-cas" {
+                assert_eq!(output.status.code(), Some(82));
+            } else {
+                assert_eq!(
+                    output.status.signal(),
+                    Some(libc::SIGKILL),
+                    "{point}: {}",
+                    String::from_utf8_lossy(&output.stderr)
+                );
+            }
+            let metadata: serde_json::Value = serde_json::from_slice(
+                &std::fs::read(fixture.path().join("fixture.json")).unwrap(),
+            )
+            .unwrap();
+            let repo =
+                Repository::discover(Path::new(metadata["source"].as_str().unwrap()), "repo")
+                    .unwrap();
+            let candidate: CandidateSnapshot =
+                serde_json::from_value(metadata["candidate"].clone()).unwrap();
+            let base = metadata["base"].as_str().unwrap();
+            let bare = Path::new(metadata["target"].as_str().unwrap());
+            let intents =
+                IntentStore::open(Path::new(metadata["intents"].as_str().unwrap())).unwrap();
+            let target = ProtectedBareTarget::open(bare, "repo").unwrap();
+            let session = GrantSession::new(
+                GrantExpectation::freeze(
+                    &repo,
+                    &candidate,
+                    GrantRequest {
+                        actor: "fixture".into(),
+                        action: GrantAction::Merge,
+                        target: "refs/heads/main".into(),
+                        expected_target_oid: Some(base.into()),
+                        operation_id: "op".into(),
+                    },
+                    GrantPolicy {
+                        authority_adapter: "fixture".into(),
+                        clock_adapter: "fixture".into(),
+                        allowed_issuers: BTreeSet::from(["fixture".into()]),
+                        max_lifetime_seconds: 120,
+                    },
+                )
+                .unwrap(),
+            );
+            let after_crash = git(bare, &["rev-parse", "refs/heads/main"]);
+            assert_eq!(
+                after_crash,
+                if matches!(point, "before-claim" | "before-cas") {
+                    base
+                } else {
+                    candidate.candidate_oid()
+                }
+            );
+            let initial = reconcile(&session, &intents, &target).unwrap();
+            if point == "after-ack" {
+                assert!(matches!(initial, RecoveryState::Applied { .. }));
+            } else if point == "before-claim" {
+                assert_eq!(initial, RecoveryState::NotAttempted);
+            } else {
+                assert_eq!(initial, RecoveryState::RecoveryRequired);
+            }
+            let tree = git(
+                bare,
+                &[
+                    "rev-parse",
+                    &format!("{}^{{tree}}", candidate.candidate_oid()),
+                ],
+            );
+            let later = git(
+                bare,
+                &[
+                    "commit-tree",
+                    &tree,
+                    "-p",
+                    candidate.candidate_oid(),
+                    "-m",
+                    "later",
+                ],
+            );
+            git(bare, &["update-ref", "refs/heads/main", &later]);
+            assert_eq!(reconcile(&session, &intents, &target).unwrap(), initial);
+            println!(
+                "{}",
+                serde_json::json!({"checkpoint": point, "child_signal": output.status.signal(), "child_exit": output.status.code(),
+                "after_crash_oid": after_crash, "advanced_oid": later,
+                "recovery": format!("{initial:?}")})
+            );
+        }
     }
 }
