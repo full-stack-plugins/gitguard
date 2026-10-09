@@ -158,3 +158,10 @@ Task1.2 is accepted for the explicit Linux x86_64 / trusted `/usr/bin/git` / sta
 ## Independently reviewed local CLI/API/MCP ports: 16/28
 
 Task5.3 accepted for e7396c1 +805a09f after independent interface/capture review and an11-test fix retest. The MCP negotiation P2 is closed: unsupported client versions receive the supported2025-11-25 version; client decides whether to continue. API unknown versions and write capabilities still reject. Existing check behavior remains. Owner full82tests and strictclippy pass; reviewer retained its earlier live-GE fullsuite as supplementary evidence rather than a fixed-pin claim. Reports: cloud ledger gitguard-interface-independent-review.md and gitguard-interface-version-fix-report.md. No production authentication/write provider or host service is claimed.
+
+
+## Reviewed protected source scope
+
+Task 1.4 accepted at `c602bfb0742d67a187251c0903c6ba8270baaeb3` for the local-controller-source-only profile. Independent full suite:90 passed; two additional SHA1/SHA256 source-mode/path/symlink probes passed; all-target Clippy and old schema compatibility checks passed. A private protected scope freezes controller-selected commit/path/raw digest and exact requirements/allowed paths before candidate analysis. Real immutable source bytes and repository association are revalidated; candidate policy deletion or weakening cannot redefine obligations. Descriptor identity includes source blob/mode/revision and any optional baseline provenance.
+
+Old TaskScope/candidate schemas and CLI remain advisory with null baseline. A descriptor digest is not SG baseline approval or producer authentication. Borrowed metadata budgets precede hashing/cloning/Git reads; source caps follow the already bounded whole-tree reader. No production authority, hostile same-UID isolation or general sandbox is accepted. Evidence: cloud ledger `gitguard-protected-scope-independent-review.md`.
