@@ -40,3 +40,5 @@ pub mod preflight;
 pub mod scope;
 pub mod subject;
 pub mod worktree;
+#[path = "../adapters/codegraph/mod.rs"]
+pub mod codegraph;
