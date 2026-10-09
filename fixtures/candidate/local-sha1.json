@@ -1,0 +1,20 @@
+{
+  "schema_version": "gitguard.candidate/v1alpha1",
+  "repo_id": "repo",
+  "task_id": "task",
+  "worktree_id": "worktree-1",
+  "requirement_ids": [
+    "R1",
+    "R2"
+  ],
+  "object_format": "sha1",
+  "candidate_oid": "2aec1efbe1eaf1310524e41e217f76685a9f0fa3",
+  "base_oid": "2aec1efbe1eaf1310524e41e217f76685a9f0fa3",
+  "merge_group_id": null,
+  "members": [],
+  "source_snapshot_digest": "ee3d35dff28c804d7b2f55d37f7fa027251477ec4adc27aeb33842d0ff923aa9",
+  "policy_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "baseline_digest": null,
+  "advisory": true,
+  "clean": true
+}

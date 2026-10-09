@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GitGuard advisory candidate snapshot",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "repo_id",
+    "task_id",
+    "worktree_id",
+    "requirement_ids",
+    "object_format",
+    "candidate_oid",
+    "base_oid",
+    "merge_group_id",
+    "members",
+    "source_snapshot_digest",
+    "policy_digest",
+    "baseline_digest",
+    "advisory",
+    "clean"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "gitguard.candidate/v1alpha1"
+    },
+    "repo_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "task_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "worktree_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "requirement_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "object_format": {
+      "enum": [
+        "sha1",
+        "sha256"
+      ]
+    },
+    "candidate_oid": {
+      "type": "string",
+      "pattern": "^([0-9a-f]{40}|[0-9a-f]{64})$"
+    },
+    "base_oid": {
+      "type": "string",
+      "pattern": "^([0-9a-f]{40}|[0-9a-f]{64})$"
+    },
+    "merge_group_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "members": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^([0-9a-f]{40}|[0-9a-f]{64})$"
+      },
+      "uniqueItems": true
+    },
+    "source_snapshot_digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "policy_digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "baseline_digest": {
+      "type": "null"
+    },
+    "advisory": {
+      "const": true
+    },
+    "clean": {
+      "type": "boolean"
+    }
+  },
+  "$comment": "Sorted IDs, object existence/type/hash, digest equality, clean state, and merge-group/member pairing require CandidateSnapshot::validate with a Repository. This schema grants no authority."
+}
