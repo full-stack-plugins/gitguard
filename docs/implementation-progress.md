@@ -202,8 +202,8 @@ Task 3.3 is accepted for the local read-only verification port at
 `8b87946f065e485475c80c86f25c5ca5b3029c9a`, against GuardEngine
 `b0e4b445e1a20a9354d55ebb41bbedaf16ec8a74`. Root and independent reviewer
 confirmed the original task requires these verification mechanisms, not an
-installed production identity service or execution integration. GitGuard is now
-23/28; no other task status changes.
+installed production identity service or execution integration. GitGuard reached
+23/28 at that checkpoint; no other task status changed.
 
 The reviewer archived that fixed source and ran `cargo test --locked --offline
 --test specialist_consumption --test evidence_trust --test freshness_audit`:
@@ -215,3 +215,30 @@ baseline/review checks, and non-repair of BLOCK/partial/error. Test-only authori
 records do not deploy production identity or grant providers, authenticate old
 captures, or authorize execution. These deployment boundaries remain explicit;
 they are not additional prerequisites for the accepted local verification port.
+
+
+## Independently reviewed four-group joint consumption: 24/28
+
+Task 5.5 is accepted at `5207e9e2dff367856f052f530258adce2351ae14` for the
+original supported local joint profile. The reviewer ran the actual example from
+a fixed GG archive with GE `b0e4b445e1a20a9354d55ebb41bbedaf16ec8a74` (exit 0),
+checked four eligible candidate groups with five specialist audits each, all 32
+within-group negatives, three cross-context refusals, M1 late-publication refusal,
+unchanged source/artifacts and same-M2 cancellation, exact local effect and
+executor rollback/reopened Applied/RecoveryRequired history. All 340 transport
+file hashes and 304 original producer artifacts were independently verified;
+all 37 unique reachable objects matched the original captured repository.
+
+Evidence: ledger `gitguard-joint-specialists-independent-review.md` and
+`gitguard-joint-specialists-independent-example.{json,log}`. Acceptance combines
+this actual GG consumer run with the previously independently executed FG
+producer/native capture, including CodeGuard native/schema/sidecar comparison.
+The example does not rerun producers. Baseline/review/operation authorities remain
+explicit fixtures; original technical REQUIRE_APPROVAL and captured bytes remain
+unchanged. FG ALLOW and specialist eligibility never grant execution.
+
+The local late-completion proof uses existing GG self-bundle LocalHistory, not an
+aggregate specialist receipt store. Production identities, hosted queue checks,
+network receipts, deployment rollout and a new full crash matrix are not claimed
+or added as new prerequisites for this original local joint acceptance. Only 5.5
+is newly checked here: GitGuard 24/28; 4.5, 5.1, 5.2 and 5.4 remain unchecked.

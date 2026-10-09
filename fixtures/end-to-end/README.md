@@ -33,7 +33,7 @@ GITGUARD_BINARY=/absolute/gitguard FLOWGUARD_BINARY=/absolute/flowguard \
   cargo test --locked --offline --test end_to_end_guard_gates -- --ignored
 ```
 
-This remains **partial 5.5**: it does not claim two newly evaluated successful requirement pipelines, a synthetic merge-group joint scenario, cross-guard late-completion persistence, fresh native CodeGuard execution, or hosted receipt/real-identity enforcement. Existing dedicated tests cover some of those mechanisms separately; they are not counted as this composed scenario. The CLI process boundary avoids a reverse GitGuard-to-FlowGuard library dependency (FlowGuard already depends on GitGuard), and preserves producer dependency locks.
+This earlier eight-case replay alone is a **partial 5.5 slice** (the later four-group acceptance is recorded below): it does not claim two newly evaluated successful requirement pipelines, a synthetic merge-group joint scenario, cross-guard late-completion persistence, fresh native CodeGuard execution, or hosted receipt/real-identity enforcement. Existing dedicated tests cover some of those mechanisms separately; they are not counted as this composed scenario. The CLI process boundary avoids a reverse GitGuard-to-FlowGuard library dependency (FlowGuard already depends on GitGuard), and preserves producer dependency locks.
 
 ## GG consumption of the four independently generated groups
 
@@ -104,10 +104,21 @@ cases directly change independently frozen expectations in the same domain. FG's
 separately corrected drift helper at `7b3c3f4` has its own independent evidence and
 is not silently substituted into these retained bytes.
 
-This advances original task 5.5 without claiming hosted queue identity, real remote
+Task 5.5 is independently accepted for this local joint profile at
+`5207e9e2dff367856f052f530258adce2351ae14`, without claiming hosted queue identity, real remote
 receipts, production rollout, fresh native execution, aggregate-specialist durable
 history, or a full new crash matrix for all four candidates. The six-process crash
 matrix and adapter rollout exercise remain their separate accepted slices; this
 example exercises same-M2 cancellation, local effect, executor disable and durable
-intent reopening. Task 5.5 remains unchecked pending review against the original
-complete joint acceptance requirements.
+intent reopening. The review combines the independently executed FG producer/native
+capture with this actual GG consumer run; retained CodeGuard native/schema/sidecar
+comparison is accepted evidence, without claiming the GG example reruns it.
+
+The reviewer ran the actual example from a fixed GG source archive against GE
+`b0e4b445e1a20a9354d55ebb41bbedaf16ec8a74`: exit 0, four positive groups,
+32 within-group negatives, three cross-context refusals and same-M2 mutation
+boundaries passed. All 340 transport files and all 304 original producer artifacts
+were independently checked; all 37 unique reachable Git objects matched the original
+capture. Evidence: ledger `gitguard-joint-specialists-independent-review.md` and
+`gitguard-joint-specialists-independent-example.{json,log}`. GitGuard is 24/28;
+this acceptance does not deploy production identity/grants or hosted enforcement.
