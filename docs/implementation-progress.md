@@ -134,3 +134,19 @@ Bilingual READMEs and technical design now describe implemented/local/reviewed v
 ## Reviewed Git configuration and toolchain checkpoint
 
 Task1.1 accepted for the declared local profile after14854ff and independent54-test regression plus two config probes; Rust1.90 focused tests also independently passed. Native Git2.47.3 config parsing is measured, not guessed from workspace Git. Supported SHA1/SHA256/config extension boundary remains explicit. Reviewed total14/28; this does not enable production authority, protected CI or remote writing.
+
+## Git subprocess task1.2 implementation awaiting independent review
+
+Added the explicitly restricted Linux single-process Git profile described in
+[git-runner-linux-adr.md](git-runner-linux-adr.md). Fixed executable/argv and private
+object-store observation now use audit-architecture-checked seccomp, no_new_privs,
+zero core dumps, nonblocking combined-byte capture and bounded direct-child
+cleanup. Forbidden process/network syscalls fail explicitly; source config and
+inherited helper environments remain isolated. Actual loose/packed Git, candidate,
+merge preview, NUL paths and unchanged-source regressions pass. No write executor,
+production authority or general sandbox claim is added.
+
+Final full suite68/68, runner-security8/8 and strict all-target Clippy pass. FlowGuard fixed7dbe801 consumer tests20/20
+pass against the new runner. TestGuard has no direct GG dependency; new ArchGuard
+candidate-source integration still awaits its separate read_commit_files API slice.
+Task1.2 is not self-accepted; existing14/28 and capability documentation remain.

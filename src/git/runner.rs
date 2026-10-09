@@ -1,12 +1,10 @@
 //! Only crate-owned argv reaches this runner; source repository config is never loaded.
-use crate::{Diagnostic, Result};
+use crate::Result;
 use std::{
-    io::Read,
     os::unix::process::CommandExt,
     path::Path,
     process::{Command, Stdio},
-    thread,
-    time::{Duration, Instant},
+    time::Duration,
 };
 #[derive(Debug, Clone, Copy)]
 pub struct Limits {
@@ -25,7 +23,8 @@ impl Default for Limits {
 }
 pub(crate) fn run(dir: &Path, args: &[&str], limits: Limits) -> Result<Vec<u8>> {
     let mut c = Command::new("/usr/bin/git");
-    c.env_clear()
+    c.current_dir(dir)
+        .env_clear()
         .env("PATH", "/usr/bin:/bin")
         .env("HOME", dir)
         .env("LC_ALL", "C")
@@ -53,55 +52,43 @@ pub(crate) fn run(dir: &Path, args: &[&str], limits: Limits) -> Result<Vec<u8>> 
             "diff.external=",
             "-c",
             "core.pager=cat",
+            "-c",
+            "core.commitGraph=false",
+            "-c",
+            "core.multiPackIndex=false",
         ]);
     c.args(args)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .process_group(0);
-    let mut child = c.spawn().map_err(|_| Diagnostic::GitFailed)?;
-    let pid = child.id() as i32;
-    let stdout = child.stdout.take().unwrap();
-    let stderr = child.stderr.take().unwrap();
-    let max = limits.output_bytes;
-    fn collect(r: impl Read, max: usize) -> std::io::Result<Vec<u8>> {
-        let mut bytes = Vec::new();
-        r.take(max.saturating_add(1) as u64)
-            .read_to_end(&mut bytes)?;
-        Ok(bytes)
+    super::process::execute(c, limits)
+}
+
+#[cfg(test)]
+mod security_tests {
+    use super::*;
+    use crate::Diagnostic;
+    #[test]
+    fn actual_git_cannot_create_a_helper_process() {
+        let dir = tempfile::tempdir().unwrap();
+        let marker = dir.path().join("helper-ran");
+        // Fixed hostile fixture, not an exposed caller argv or executable API.
+        let alias = format!("alias.boundary=!printf leaked > {}", marker.display());
+        let result = run(dir.path(), &["-c", &alias, "boundary"], Limits::default());
+        assert!(result.is_err(), "helper process unexpectedly executed");
+        assert!(!marker.exists());
     }
-    let out = thread::spawn(move || collect(stdout, max));
-    let err = thread::spawn(move || collect(stderr, max));
-    let start = Instant::now();
-    let status = loop {
-        match child.try_wait() {
-            Ok(Some(s)) => break Ok(s),
-            Ok(None) => {}
-            Err(_) => break Err(Diagnostic::GitFailed),
-        }
-        if start.elapsed() >= limits.timeout {
-            break Err(Diagnostic::LimitExceeded);
-        }
-        thread::sleep(Duration::from_millis(2));
-    };
-    // Killing the process group also closes inherited pipe handles on failures.
-    unsafe {
-        libc::kill(-pid, libc::SIGKILL);
+    #[test]
+    fn callers_cannot_expand_the_supported_resource_profile() {
+        let dir = tempfile::tempdir().unwrap();
+        let limits = Limits {
+            output_bytes: usize::MAX,
+            ..Limits::default()
+        };
+        assert!(matches!(
+            run(dir.path(), &["version"], limits),
+            Err(Diagnostic::LimitExceeded)
+        ));
     }
-    let _ = child.wait();
-    let stdout = out
-        .join()
-        .map_err(|_| Diagnostic::GitFailed)?
-        .map_err(|_| Diagnostic::GitFailed)?;
-    let stderr = err
-        .join()
-        .map_err(|_| Diagnostic::GitFailed)?
-        .map_err(|_| Diagnostic::GitFailed)?;
-    if stdout.len() > max || stderr.len() > max {
-        return Err(Diagnostic::LimitExceeded);
-    }
-    if !status?.success() {
-        return Err(Diagnostic::GitFailed);
-    }
-    Ok(stdout)
 }
