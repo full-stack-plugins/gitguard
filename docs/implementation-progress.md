@@ -170,7 +170,7 @@ Old TaskScope/candidate schemas and CLI remain advisory with null baseline. A de
 
 Root independently accepted task 4.3 after snapshots 5085593 (local Push transfer) and 0110787 (independent detached CreateWorktree). Evidence: ledger gitguard-transfer/worktree logs and root review, including extra binary/non-UTF8/executable-file and symlink rejection probes. Acceptance is Linux private local targets, regular files, fixture-authority validation; no network/linked-worktree/production-auth claim. GitGuard 22/28, cross-project 150/193. Task 4.5 remains unchecked; durable acknowledgement 10c2e2c is a reviewed sub-slice, not the complete recovery task.
 
-## Controller-frozen specialist consumption (pending independent review)
+## Independently reviewed controller-frozen specialist consumption: 23/28
 
 The additive `evidence::specialists::PreparedSpecialistConsumption` port consumes a
 controller-frozen, nonempty required producer set through GE eligibility. Common
@@ -198,4 +198,20 @@ port produces no execution grant and is not wired into execution dispatch. A
 protected controller must establish trustworthy domain sources, choose immutable
 bytes and supply authenticated authority records; content hashes alone do not do
 that. Existing `UnavailableAuthority` is still the safe unsupported provider.
-Task 3.3 remains unchecked until independent acceptance of the supported profile.
+Task 3.3 is accepted for the local read-only verification port at
+`8b87946f065e485475c80c86f25c5ca5b3029c9a`, against GuardEngine
+`b0e4b445e1a20a9354d55ebb41bbedaf16ec8a74`. Root and independent reviewer
+confirmed the original task requires these verification mechanisms, not an
+installed production identity service or execution integration. GitGuard is now
+23/28; no other task status changes.
+
+The reviewer archived that fixed source and ran `cargo test --locked --offline
+--test specialist_consumption --test evidence_trust --test freshness_audit`:
+8 specialist + 3 trust + 8 freshness tests passed (19 total, zero failed/ignored).
+Evidence: ledger `gitguard-specialist-independent-review.md` and
+`gitguard-specialist-independent-tests.log`. Acceptance includes required-set,
+exact candidate/domain binding, reference-byte integrity, fresh issuer and
+baseline/review checks, and non-repair of BLOCK/partial/error. Test-only authority
+records do not deploy production identity or grant providers, authenticate old
+captures, or authorize execution. These deployment boundaries remain explicit;
+they are not additional prerequisites for the accepted local verification port.
