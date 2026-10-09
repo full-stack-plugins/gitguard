@@ -18,11 +18,12 @@
     "policy_digest",
     "baseline_digest",
     "advisory",
-    "clean"
+    "clean",
+    "allowed_paths"
   ],
   "properties": {
     "schema_version": {
-      "const": "gitguard.candidate/v1alpha1"
+      "const": "gitguard.candidate/v1alpha2"
     },
     "repo_id": {
       "type": "string",
@@ -94,7 +95,20 @@
     },
     "clean": {
       "type": "boolean"
+    },
+    "allowed_paths": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "array",
+        "minItems": 1,
+        "items": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        }
+      }
     }
   },
-  "$comment": "Sorted IDs, object existence/type/hash, digest equality, clean state, and merge-group/member pairing require CandidateSnapshot::validate with a Repository. This schema grants no authority."
+  "$comment": "Sorted IDs, object existence/type/hash, digest equality, clean state, and merge-group/member pairing require CandidateSnapshot::validate with a Repository. This schema grants no authority. Allowed paths are a lexicographically byte-sorted set; runtime validation enforces path safety and strict ordering. No Unicode/case normalization or redundant-prefix elimination."
 }

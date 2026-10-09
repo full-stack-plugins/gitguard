@@ -1,6 +1,6 @@
 use crate::{
     Diagnostic, Repository, Result,
-    scope::{TaskScope, digest_valid},
+    scope::{TaskScope, digest_valid, path_valid},
     subject::{FrozenSubject, SubjectRequest, hash},
 };
 use serde::{Deserialize, Serialize};
@@ -21,6 +21,7 @@ pub struct CandidateSnapshot {
     task_id: String,
     worktree_id: String,
     requirement_ids: Vec<String>,
+    allowed_paths: Vec<Vec<u8>>,
     object_format: String,
     candidate_oid: String,
     base_oid: String,
@@ -79,11 +80,15 @@ impl CandidateSnapshot {
     pub fn requirement_ids(&self) -> &[String] {
         &self.requirement_ids
     }
+    /// Canonical byte-sorted, deduplicated path prefixes bound into this snapshot.
+    pub fn allowed_paths(&self) -> &[Vec<u8>] {
+        &self.allowed_paths
+    }
     pub fn binding_digest(&self) -> String {
         hash(&serde_json::to_vec(self).expect("string/vector serialization"))
     }
     pub fn validate(&self, repo: &Repository) -> Result<()> {
-        if self.schema_version != "gitguard.candidate/v1alpha1"
+        if self.schema_version != "gitguard.candidate/v1alpha2"
             || !self.advisory
             || self.repo_id != repo.repo_id
             || self.object_format != repo.object_format()
@@ -92,6 +97,11 @@ impl CandidateSnapshot {
             || self.requirement_ids.is_empty()
             || self.requirement_ids.iter().any(|s| s.is_empty())
             || self.requirement_ids.windows(2).any(|s| s[0] >= s[1])
+            || self.allowed_paths.iter().any(|path| !path_valid(path))
+            || self
+                .allowed_paths
+                .windows(2)
+                .any(|paths| paths[0] >= paths[1])
             || !digest_valid(&self.source_snapshot_digest)
             || !digest_valid(&self.policy_digest)
             || self.baseline_digest.is_some()
@@ -168,12 +178,16 @@ impl Repository {
         if current.digest() != subject.digest() {
             return Err(Diagnostic::InvalidBinding);
         }
+        let mut allowed_paths = scope.allowed_paths.clone();
+        allowed_paths.sort();
+        allowed_paths.dedup();
         let snapshot = CandidateSnapshot {
-            schema_version: "gitguard.candidate/v1alpha1".into(),
+            schema_version: "gitguard.candidate/v1alpha2".into(),
             repo_id: self.repo_id.clone(),
             task_id: scope.task_id.clone(),
             worktree_id: request.worktree_id.clone(),
             requirement_ids: scope.requirement_ids.clone(),
+            allowed_paths,
             object_format: self.object_format().into(),
             candidate_oid: candidate.into(),
             base_oid: request.base_oid.clone(),

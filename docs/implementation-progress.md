@@ -43,3 +43,16 @@ Ruling: this slice remains advisory and documents unsupported hostile concurrent
 Task status: 1.1 substantial local implementation (MSRV/toolchain matrix pending); 1.2 partial hardening; 1.3 implemented local contract; 1.4 partial (local scope immutable, baseline source/authority unsupported); 1.5 implemented byte-safe static path contract; 1.6 implemented local advisory boundary; 2.1 implemented initial two-parent local preview; 2.2 implemented resolved local exact binding, production event adapter unsupported; 2.3 implemented process-local leases; 2.4 implemented explicitly labelled graph fixture port; 2.5 implemented local null-baseline serialization profile; 2.6 implemented local acceptance, not production authoritative gate. Root decides full task acceptance after review. Groups 3–5 untouched.
 
 Final verification: `cargo fmt --check` passed; `cargo test` passed 21 integration tests, zero failures, plus empty unit/doc suites; `cargo clippy --all-targets -- -D warnings` passed; strict OpenSpec validate passed 1 change with zero issues. Detailed final logs: gitguard-final-tests.log, gitguard-final-clippy.log, gitguard-openspec.log. Initial clippy found one collapsible-if style issue, fixed before the final clean run. Independent review is delegated to root; no full production acceptance asserted.
+
+
+## Independent-review P2 fix — scope binding
+
+Review: /workspace/guard-implementation-ledger/gitguard-review.md. Confirmed actual allowed path prefixes were omitted from snapshot identity, so identical caller policy digests concealed different enforced scopes. No task checkbox changed.
+
+Ruling: bind the actual canonical `allowed_paths` directly, alongside the existing task, requirements, policy and baseline fields. Normalize only lexicographic unsigned-byte sorting and exact duplicate removal at snapshot preparation. Retain byte/case distinctions and redundant ancestor/descendant prefixes; do not infer normalization from an external policy digest. Deserialized snapshots must already be canonical and safe.
+
+Compatibility: advance local snapshot wire version from gitguard.candidate/v1alpha1 to v1alpha2; reject old records, require allowed_paths, update the real-object vector and schema. All prior binding digests require regeneration. FlowGuard implementer notified; Rust constructor compatibility retained, allowed_paths getter added. No authentication/trust capability changed.
+
+TDD: `cargo test --test scope_binding` RED 0/2: opposite local completeness outcomes had identical digest; allowed_paths was absent. Same command GREEN 2/2 after fix. Logs: gitguard-review-fix-red.log and gitguard-review-fix-green.log. Tests additionally cover byte sorting/non-UTF-8, exact duplicate normalization, unsafe/unsorted/duplicate serialized paths, required field and old-version rejection.
+
+Review-fix verification: full `cargo test` passed 23 integration tests, zero failures; `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`, and `git diff --check` passed. Evidence: gitguard-review-fix-tests.log and gitguard-review-fix-clippy.log. Awaiting root's independent recheck; earlier trust, baseline, filesystem and process-containment limitations remain unchanged.

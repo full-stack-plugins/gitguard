@@ -1,5 +1,5 @@
 {
-  "schema_version": "gitguard.candidate/v1alpha1",
+  "schema_version": "gitguard.candidate/v1alpha2",
   "repo_id": "repo",
   "task_id": "task",
   "worktree_id": "worktree-1",
@@ -16,5 +16,10 @@
   "policy_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
   "baseline_digest": null,
   "advisory": true,
-  "clean": true
+  "clean": true,
+  "allowed_paths": [
+    [
+      97
+    ]
+  ]
 }
