@@ -1,6 +1,6 @@
-# Shared Guard integration contract — draft 0.1
+# Shared Guard integration contract — design baseline 0.1
 
-Status: **target design, not implemented**. This identical document is reviewed with all seven repositories. GuardEngine owns its future versioning; each Guard owns domain payload semantics. It does not change the strict, currently implemented `guard.partme.ai/v1alpha1` protocol. Product names are GuardEngine, SpecGuard, ArchGuard, CodeGuard, TestGuard, GitGuard and FlowGuard; the historical wire namespace stays unchanged until an explicit migration.
+Status: **historical design baseline, not a current implementation inventory**. The original planning statements below describe the approved draft before the implementation work. Selected local profiles now implement `guard.integration/v1alpha1`; consult this repository's [implementation ledger](implementation-progress.md) and accepted OpenSpec tasks for exact versions, tested behavior and remaining limits. This baseline alone does not establish production identity, hosted enforcement, public release or implicit compatibility. GuardEngine owns shared protocol versioning; each Guard owns domain payload semantics. The existing strict `guard.partme.ai/v1alpha1` protocol remains distinct. Product names are GuardEngine, SpecGuard, ArchGuard, CodeGuard, TestGuard, GitGuard and FlowGuard; the historical wire namespace is preserved until an explicit migration.
 
 ## 1. Responsibility and version boundaries
 
