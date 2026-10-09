@@ -1,4 +1,4 @@
-//! Historical local controller acknowledgement, independent of feature/config rollback.
+//! Historical local controller acknowledgement or explicit reftable platform receipt.
 //! No current-ref inference, remote authentication, retry or compensation is performed.
 use super::{
     grant::GrantSession,
@@ -34,7 +34,25 @@ pub fn reconcile(
     target: &ProtectedBareTarget,
 ) -> Result<RecoveryState, RecoveryError> {
     target.unchanged().map_err(|_| RecoveryError::Target)?;
-    reconcile_identity(session, intents, target.identity())
+    let historical = reconcile_identity(session, intents, target.identity())?;
+    if historical == RecoveryState::RecoveryRequired {
+        let expected = session.expectation();
+        let receipt = intents
+            .lookup_for_platform(expected, target.identity())
+            .map_err(|_| RecoveryError::Intent)?
+            .ok_or(RecoveryError::Intent)?;
+        if target
+            .confirms_receipt(expected, receipt.request_digest())
+            .map_err(|_| RecoveryError::Target)?
+        {
+            return Ok(RecoveryState::Applied {
+                operation_id: receipt.operation_id().into(),
+                request_digest: receipt.request_digest().into(),
+                candidate_oid: expected.candidate_oid().into(),
+            });
+        }
+    }
+    Ok(historical)
 }
 
 pub(crate) fn reconcile_identity(

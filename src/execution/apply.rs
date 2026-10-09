@@ -124,7 +124,7 @@ fn apply_inner(
         #[cfg(test)]
         crash_checkpoint("before-cas");
         target
-            .compare_and_swap(expected)
+            .compare_and_swap(expected, prepared.request_digest())
             .map_err(|_| ApplyError::Target)?;
         #[cfg(test)]
         crash_checkpoint("after-cas");
@@ -298,13 +298,24 @@ mod tests {
             .permissions(std::fs::Permissions::from_mode(0o700))
             .tempdir_in(fixture_root())
             .unwrap();
-        git(bare.path(), &["init", "--bare", "-q"]);
+        if std::env::var_os("GG_APPLY_TEST_REFTABLE").is_some() {
+            git(
+                bare.path(),
+                &["init", "--bare", "--ref-format=reftable", "-q"],
+            );
+        } else {
+            git(bare.path(), &["init", "--bare", "-q"]);
+        }
         copy(
             &source.path().join(".git/objects"),
             &bare.path().join("objects"),
         );
         git(bare.path(), &["update-ref", "refs/heads/main", &base]);
-        let target = ProtectedBareTarget::open(bare.path(), "repo").unwrap();
+        let target = if std::env::var_os("GG_APPLY_TEST_REFTABLE").is_some() {
+            ProtectedBareTarget::open_reftable_receipts(bare.path(), "repo").unwrap()
+        } else {
+            ProtectedBareTarget::open(bare.path(), "repo").unwrap()
+        };
         let root = tempfile::Builder::new()
             .permissions(std::fs::Permissions::from_mode(0o700))
             .prefix(".apply-unit-")
@@ -342,8 +353,8 @@ mod tests {
                 assert!(matches!(result, Err(ApplyError::RecoveryRequired)));
                 std::process::exit(82);
             }
-            let _ = apply(&context, &target);
-            panic!("worker must crash at the requested checkpoint");
+            let result = apply(&context, &target).err();
+            panic!("worker must crash at the requested checkpoint: {result:?}");
         }
         assert!(matches!(
             apply_inner(&context, &target, || Err(ApplyError::RecoveryRequired)),
@@ -483,5 +494,184 @@ mod tests {
                 "recovery": format!("{initial:?}")})
             );
         }
+    }
+    #[test]
+    fn reftable_receipt_resolves_lost_ack_after_target_advances() {
+        use crate::execution::reconcile::{RecoveryState, reconcile};
+        for point in ["after-cas", "before-ack"] {
+            let fixture = tempfile::tempdir_in(env!("CARGO_MANIFEST_DIR")).unwrap();
+            let output = Command::new(std::env::current_exe().unwrap())
+                .args(["--exact", "execution::apply::tests::actual_cas_then_delivery_failure_keeps_uncertainty_and_does_not_undo", "--nocapture"])
+                .env("GG_APPLY_TEST_ROOT", fixture.path())
+                .env("GG_APPLY_TEST_REFTABLE", "1")
+                .env("GG_APPLY_TEST_CRASH", point)
+                .output().unwrap();
+            use std::os::unix::process::ExitStatusExt;
+            assert_eq!(
+                output.status.signal(),
+                Some(libc::SIGKILL),
+                "{point}: {} {}",
+                String::from_utf8_lossy(&output.stdout),
+                String::from_utf8_lossy(&output.stderr)
+            );
+            let metadata: serde_json::Value = serde_json::from_slice(
+                &std::fs::read(fixture.path().join("fixture.json")).unwrap(),
+            )
+            .unwrap();
+            let repo =
+                Repository::discover(Path::new(metadata["source"].as_str().unwrap()), "repo")
+                    .unwrap();
+            let candidate: CandidateSnapshot =
+                serde_json::from_value(metadata["candidate"].clone()).unwrap();
+            let bare = Path::new(metadata["target"].as_str().unwrap());
+            let journal = Path::new(metadata["intents"].as_str().unwrap());
+            let intents = IntentStore::open(journal).unwrap();
+            let historical = std::fs::read(journal.join("intent.json")).unwrap();
+            let target = ProtectedBareTarget::open_reftable_receipts(bare, "repo").unwrap();
+            let session = GrantSession::new(
+                GrantExpectation::freeze(
+                    &repo,
+                    &candidate,
+                    GrantRequest {
+                        actor: "fixture".into(),
+                        action: GrantAction::Merge,
+                        target: "refs/heads/main".into(),
+                        expected_target_oid: Some(metadata["base"].as_str().unwrap().into()),
+                        operation_id: "op".into(),
+                    },
+                    GrantPolicy {
+                        authority_adapter: "fixture".into(),
+                        clock_adapter: "fixture".into(),
+                        allowed_issuers: BTreeSet::from(["fixture".into()]),
+                        max_lifetime_seconds: 120,
+                    },
+                )
+                .unwrap(),
+            );
+            let before = reconcile(&session, &intents, &target).unwrap();
+            assert!(
+                matches!(&before, RecoveryState::Applied { candidate_oid, operation_id, .. }
+                if candidate_oid == candidate.candidate_oid() && operation_id == "op")
+            );
+            let tree = git(
+                bare,
+                &[
+                    "rev-parse",
+                    &format!("{}^{{tree}}", candidate.candidate_oid()),
+                ],
+            );
+            let later = git(
+                bare,
+                &[
+                    "commit-tree",
+                    &tree,
+                    "-p",
+                    candidate.candidate_oid(),
+                    "-m",
+                    "later",
+                ],
+            );
+            git(bare, &["update-ref", "refs/heads/main", &later]);
+            assert_eq!(reconcile(&session, &intents, &target).unwrap(), before);
+            assert_eq!(
+                std::fs::read(journal.join("intent.json")).unwrap(),
+                historical
+            );
+            let receipt_ref = git(
+                bare,
+                &[
+                    "for-each-ref",
+                    "--format=%(refname)",
+                    "refs/gitguard/receipts/",
+                ],
+            );
+            assert!(!receipt_ref.is_empty());
+            let original_receipt = git(bare, &["cat-file", "blob", &receipt_ref]);
+            let decoded: serde_json::Value = serde_json::from_str(&original_receipt).unwrap();
+            // Operation ID, request digest, platform and candidate must all match;
+            // valid JSON in a real blob is insufficient proof of this operation.
+            for field in [1usize, 2, 4, 5] {
+                let mut wrong = decoded.clone();
+                wrong[field] = serde_json::Value::String("wrong-binding".into());
+                let input = fixture.path().join("wrong-receipt.json");
+                std::fs::write(&input, serde_json::to_vec(&wrong).unwrap()).unwrap();
+                let blob = git(bare, &["hash-object", "-w", input.to_str().unwrap()]);
+                git(bare, &["update-ref", &receipt_ref, &blob]);
+                assert_eq!(
+                    reconcile(&session, &intents, &target).unwrap(),
+                    RecoveryState::RecoveryRequired
+                );
+            }
+            // A valid commit is not a matching receipt, even when it is the candidate.
+            git(
+                bare,
+                &["update-ref", &receipt_ref, candidate.candidate_oid()],
+            );
+            assert_eq!(
+                reconcile(&session, &intents, &target).unwrap(),
+                RecoveryState::RecoveryRequired
+            );
+            git(bare, &["update-ref", "-d", &receipt_ref]);
+            assert_eq!(
+                reconcile(&session, &intents, &target).unwrap(),
+                RecoveryState::RecoveryRequired
+            );
+            assert_eq!(git(bare, &["rev-parse", "refs/heads/main"]), later);
+            let RecoveryState::Applied { request_digest, .. } = &before else {
+                unreachable!()
+            };
+            assert!(
+                target
+                    .compare_and_swap(session.expectation(), request_digest)
+                    .is_err()
+            );
+            assert!(
+                git(
+                    bare,
+                    &[
+                        "for-each-ref",
+                        "--format=%(refname)",
+                        "refs/gitguard/receipts/"
+                    ]
+                )
+                .is_empty()
+            );
+            assert_eq!(git(bare, &["rev-parse", "refs/heads/main"]), later);
+            assert_eq!(
+                std::fs::read(journal.join("intent.json")).unwrap(),
+                historical
+            );
+            println!(
+                "{}",
+                serde_json::json!({"checkpoint":point, "signal":output.status.signal(),
+                "candidate":candidate.candidate_oid(), "advanced":later, "receipt":receipt_ref,
+                "recovery":format!("{before:?}"), "missing_or_corrupt":"RecoveryRequired", "journal_unchanged":true})
+            );
+        }
+    }
+    #[test]
+    fn reftable_receipt_profile_requires_explicit_exact_backend_configuration() {
+        let bare = tempfile::tempdir_in(env!("CARGO_MANIFEST_DIR")).unwrap();
+        git(bare.path(), &["init", "--bare", "-q"]);
+        assert!(ProtectedBareTarget::open(bare.path(), "repo").is_ok());
+        assert!(ProtectedBareTarget::open_reftable_receipts(bare.path(), "repo").is_err());
+        let table = tempfile::tempdir_in(env!("CARGO_MANIFEST_DIR")).unwrap();
+        git(
+            table.path(),
+            &["init", "--bare", "--ref-format=reftable", "-q"],
+        );
+        assert!(ProtectedBareTarget::open(table.path(), "repo").is_err());
+        assert!(ProtectedBareTarget::open_reftable_receipts(table.path(), "repo").is_ok());
+        git(
+            table.path(),
+            &["config", "core.hooksPath", "/unused-fixture-path"],
+        );
+        assert!(ProtectedBareTarget::open_reftable_receipts(table.path(), "repo").is_err());
+        git(table.path(), &["config", "--unset", "core.hooksPath"]);
+        git(
+            table.path(),
+            &["config", "extensions.refStorage", "unknown"],
+        );
+        assert!(ProtectedBareTarget::open_reftable_receipts(table.path(), "repo").is_err());
     }
 }

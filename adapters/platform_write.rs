@@ -2,7 +2,7 @@
 use crate::{
     Repository,
     execution::grant::{GrantAction, GrantExpectation},
-    git::runner::{Limits, run, verify_integrity},
+    git::runner::{Limits, run, run_with_input, verify_integrity},
     subject::hash,
 };
 use std::{
@@ -32,9 +32,23 @@ pub struct ProtectedBareTarget {
     config_hash: String,
     format: String,
     identity: String,
+    receipt_profile: bool,
 }
 impl ProtectedBareTarget {
     pub fn open(root: &Path, repo_id: &str) -> Result<Self, PlatformError> {
+        Self::open_profile(root, repo_id, false)
+    }
+    /// Explicit Linux x86_64 / Git 2.47.3 / SHA-1 reftable receipt profile.
+    /// Caller must select a private controller-owned bare repository; no migration occurs.
+    /// Proves process-crash consistency, not power-loss durability or hosted identity.
+    pub fn open_reftable_receipts(root: &Path, repo_id: &str) -> Result<Self, PlatformError> {
+        Self::open_profile(root, repo_id, true)
+    }
+    fn open_profile(
+        root: &Path,
+        repo_id: &str,
+        receipt_profile: bool,
+    ) -> Result<Self, PlatformError> {
         if repo_id.is_empty()
             || repo_id.len() > 128
             || !repo_id
@@ -63,11 +77,20 @@ impl ProtectedBareTarget {
             config_hash: String::new(),
             format: String::new(),
             identity: String::new(),
+            receipt_profile,
         };
         target.scan()?;
         let config = target.config()?;
         // Parse explicit frozen bytes in isolated metadata, never load unvalidated target config.
         let temp = tempfile::tempdir().map_err(|_| PlatformError::Unavailable)?;
+        if receipt_profile
+            && (!cfg!(all(target_os = "linux", target_arch = "x86_64"))
+                || run(temp.path(), &["version"], Limits::default())
+                    .map_err(|_| PlatformError::Unsupported)?
+                    != b"git version 2.47.3\n")
+        {
+            return Err(PlatformError::Unsupported);
+        }
         let file = temp.path().join("config-source");
         std::fs::write(&file, &config).map_err(|_| PlatformError::Unavailable)?;
         let values = run(
@@ -91,13 +114,14 @@ impl ProtectedBareTarget {
             }
         }
         if map.keys().any(|k| {
-            ![
-                b"core.repositoryformatversion".as_slice(),
-                b"core.filemode",
-                b"core.bare",
-                b"extensions.objectformat",
-            ]
-            .contains(&k.as_slice())
+            !(receipt_profile && k.as_slice() == b"extensions.refstorage")
+                && ![
+                    b"core.repositoryformatversion".as_slice(),
+                    b"core.filemode",
+                    b"core.bare",
+                    b"extensions.objectformat",
+                ]
+                .contains(&k.as_slice())
         }) || map.get(b"core.bare".as_slice()).map(Vec::as_slice) != Some(b"true")
             || !matches!(
                 map.get(b"core.filemode".as_slice()).map(Vec::as_slice),
@@ -106,15 +130,31 @@ impl ProtectedBareTarget {
         {
             return Err(PlatformError::Unsupported);
         }
-        target.format = match (
-            map.get(b"core.repositoryformatversion".as_slice())
-                .map(Vec::as_slice),
-            map.get(b"extensions.objectformat".as_slice())
-                .map(Vec::as_slice),
-        ) {
-            (Some(b"0"), None) => "sha1",
-            (Some(b"1"), Some(b"sha256")) => "sha256",
-            _ => return Err(PlatformError::Unsupported),
+        target.format = if receipt_profile {
+            if map
+                .get(b"extensions.refstorage".as_slice())
+                .map(Vec::as_slice)
+                != Some(b"reftable")
+                || map
+                    .get(b"core.repositoryformatversion".as_slice())
+                    .map(Vec::as_slice)
+                    != Some(b"1")
+                || map.contains_key(b"extensions.objectformat".as_slice())
+            {
+                return Err(PlatformError::Unsupported);
+            }
+            "sha1"
+        } else {
+            match (
+                map.get(b"core.repositoryformatversion".as_slice())
+                    .map(Vec::as_slice),
+                map.get(b"extensions.objectformat".as_slice())
+                    .map(Vec::as_slice),
+            ) {
+                (Some(b"0"), None) => "sha1",
+                (Some(b"1"), Some(b"sha256")) => "sha256",
+                _ => return Err(PlatformError::Unsupported),
+            }
         }
         .into();
         target.config_hash = hash(&config);
@@ -443,8 +483,61 @@ impl ProtectedBareTarget {
     pub(crate) fn compare_and_swap(
         &self,
         expected: &GrantExpectation,
+        request_digest: &str,
     ) -> Result<(), PlatformError> {
         self.unchanged()?;
+        if self.receipt_profile {
+            self.scan()?;
+            let bytes = self.receipt_bytes(expected, request_digest)?;
+            let object = run_with_input(
+                &self.path(),
+                &["hash-object", "-w", "--stdin"],
+                &bytes,
+                Limits::default(),
+            )
+            .map_err(|_| PlatformError::Unavailable)?;
+            let oid = std::str::from_utf8(&object)
+                .map_err(|_| PlatformError::Binding)?
+                .trim();
+            if oid.len() != 40
+                || !oid
+                    .bytes()
+                    .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+            {
+                return Err(PlatformError::Binding);
+            }
+            let req = expected.request();
+            let transaction = format!(
+                "start\noption no-deref\nupdate {} {} {}\ncreate {} {}\nprepare\ncommit\n",
+                req.target,
+                expected.candidate_oid(),
+                req.expected_target_oid
+                    .as_deref()
+                    .unwrap_or("0000000000000000000000000000000000000000"),
+                self.receipt_ref(expected),
+                oid
+            );
+            // Fixed reflog attribution only, never an actor identity or grant.
+            // Avoid Git's auto-email hostname lookup under the unchanged no-network profile.
+            let output = run_with_input(
+                &self.path(),
+                &[
+                    "-c",
+                    "user.name=GitGuard local receipt",
+                    "-c",
+                    "user.email=local-receipt@example.invalid",
+                    "update-ref",
+                    "--stdin",
+                ],
+                transaction.as_bytes(),
+                Limits::default(),
+            )
+            .map_err(|_| PlatformError::Unavailable)?;
+            if output != b"start: ok\nprepare: ok\ncommit: ok\n" {
+                return Err(PlatformError::Unavailable);
+            }
+            return Ok(());
+        }
         let req = expected.request();
         let absent = "0".repeat(expected.candidate_oid().len());
         let output = self.git(&[
@@ -458,6 +551,70 @@ impl ProtectedBareTarget {
             return Err(PlatformError::Unavailable);
         }
         Ok(())
+    }
+    fn receipt_ref(&self, expected: &GrantExpectation) -> String {
+        // Hash arbitrary bounded operation IDs; no request-controlled ref syntax.
+        format!(
+            "refs/gitguard/receipts/{}",
+            hash(expected.operation_id().as_bytes()).trim_start_matches("sha256:")
+        )
+    }
+    fn receipt_bytes(
+        &self,
+        expected: &GrantExpectation,
+        request_digest: &str,
+    ) -> Result<Vec<u8>, PlatformError> {
+        serde_json::to_vec(&(
+            "gitguard.local-reftable-receipt/v1alpha1",
+            self.identity(),
+            expected.operation_id(),
+            expected.digest(),
+            request_digest,
+            expected.candidate_oid(),
+        ))
+        .map_err(|_| PlatformError::Binding)
+    }
+    /// Positive proof only. Missing, malformed or inaccessible receipt never means not written.
+    pub(crate) fn confirms_receipt(
+        &self,
+        expected: &GrantExpectation,
+        request_digest: &str,
+    ) -> Result<bool, PlatformError> {
+        if !self.receipt_profile {
+            return Ok(false);
+        }
+        self.unchanged()?;
+        self.scan()?;
+        let name = self.receipt_ref(expected);
+        let raw = self.git(&[
+            "for-each-ref",
+            "--format=%(refname) %(objectname) %(symref)",
+            &name,
+        ])?;
+        let text = std::str::from_utf8(&raw).map_err(|_| PlatformError::Binding)?;
+        let fields: Vec<_> = text.trim_end_matches('\n').split(' ').collect();
+        if fields.len() != 3
+            || fields[0] != name
+            || !fields[2].is_empty()
+            || fields[1].len() != 40
+            || !fields[1]
+                .bytes()
+                .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+        {
+            return Ok(false);
+        }
+        let bytes = run(
+            &self.path(),
+            &["cat-file", "blob", fields[1]],
+            Limits {
+                output_bytes: 16_384,
+                ..Limits::default()
+            },
+        );
+        Ok(bytes.is_ok_and(|b| {
+            self.receipt_bytes(expected, request_digest)
+                .is_ok_and(|wanted| b == wanted)
+        }))
     }
 }
 trait SplitConfig {

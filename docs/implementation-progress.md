@@ -242,3 +242,8 @@ aggregate specialist receipt store. Production identities, hosted queue checks,
 network receipts, deployment rollout and a new full crash matrix are not claimed
 or added as new prerequisites for this original local joint acceptance. Only 5.5
 is newly checked here: GitGuard 24/28; 4.5, 5.1, 5.2 and 5.4 remain unchecked.
+
+
+### Task 4.5: explicit reftable platform receipt slice, pending review
+
+Added a separately selected Linux x86_64 / Git 2.47.3 / SHA-1 local reftable receipt profile after a real files-backend partial-transaction counterexample. The existing files profile, grant checks, controller journal and process restrictions remain in place. A reftable transaction couples the target CAS to the full operation/request/platform/candidate receipt. Independent read-only receipt consumption resolves lost controller acknowledgements after target advancement; missing/corrupt/misbound proof stays unknown. No auto-retry, compensation, remote write or power-loss claim is added. See `docs/operation-intents.md` and ledger `gitguard-receipt-*` evidence. Checklist/count unchanged at 24/28 pending independent review.

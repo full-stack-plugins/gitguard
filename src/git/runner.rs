@@ -22,6 +22,31 @@ impl Default for Limits {
     }
 }
 pub(crate) fn run(dir: &Path, args: &[&str], limits: Limits) -> Result<Vec<u8>> {
+    super::process::execute(command(dir, args), limits)
+}
+
+/// Only bounded crate-generated transaction/object bytes, never caller commands.
+/// A private regular file avoids a pipe writer and keeps the existing child lifecycle.
+pub(crate) fn run_with_input(
+    dir: &Path,
+    args: &[&str],
+    input: &[u8],
+    limits: Limits,
+) -> Result<Vec<u8>> {
+    use std::io::{Seek, Write};
+    if input.len() > 16_384 {
+        return Err(crate::Diagnostic::LimitExceeded);
+    }
+    let mut file = tempfile::tempfile().map_err(|_| crate::Diagnostic::GitFailed)?;
+    file.write_all(input)
+        .map_err(|_| crate::Diagnostic::GitFailed)?;
+    file.rewind().map_err(|_| crate::Diagnostic::GitFailed)?;
+    let mut c = command(dir, args);
+    c.stdin(Stdio::from(file));
+    super::process::execute(c, limits)
+}
+
+fn command(dir: &Path, args: &[&str]) -> Command {
     let mut c = Command::new("/usr/bin/git");
     c.current_dir(dir)
         .env_clear()
@@ -62,7 +87,7 @@ pub(crate) fn run(dir: &Path, args: &[&str], limits: Limits) -> Result<Vec<u8>> 
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .process_group(0);
-    super::process::execute(c, limits)
+    c
 }
 
 // Git 2.50 made fsck start `git refs verify`. Keep that check but launch
