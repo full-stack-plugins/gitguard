@@ -22,7 +22,10 @@ impl From<std::io::Error> for Diagnostic {
     }
 }
 pub mod candidate;
+pub mod cli;
 pub mod conflicts;
+pub mod evidence;
+pub mod execution;
 pub mod preflight;
 pub mod scope;
 pub mod subject;

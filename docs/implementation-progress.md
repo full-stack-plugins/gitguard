@@ -60,3 +60,21 @@ Review-fix verification: full `cargo test` passed 23 integration tests, zero fai
 ## Independent review acceptance
 
 Local full task acceptance: 1.3, 1.5, 1.6, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6. Review findings were fixed with RED/GREEN regressions and independently rechecked; see cloud execution ledger gitguard-review.md. Scope remains local and advisory/fixture-labelled where stated. Production authority, remaining capability gaps and hosted gates are not claimed.
+
+## Slice 2 plan — 3.1/3.2/4.1
+
+Base 1d72ba1 (root recorded bounded local task acceptance). Preserve candidate v1alpha2 and FlowGuard consumers.
+- 3.1: actual GE GuardFacts/forbid_relation mapping, pinned local mapping version, policy digest matched to actual engine contract; real clean/violation/partial and enforce/review/advise tests. Domain data stays outside engine objects.
+- 3.2: strict versioned JSON CLI input and stdout bundle (envelope + exact artifacts); no --report support. Real GE attempt lifecycle when available, no pre-binding envelope, bound errors/cancelled null, decision/exit correspondence and strict input rejection. No stale output file can become success.
+- 4.1: default-disabled optional writer configuration and always-denied local port until reviewed external authorization exists. No credentials, transport, grants, remote writes or approval booleans as authority.
+Ruling: use sibling GuardEngine source dependency only for local development, not claim published independent distribution. stdout-only CLI deliberately rejects --report; callers must check process code and bundle integrity. Gitflow provider survey deferred from this bounded slice unless spare independent time remains.
+
+Slice 2 implemented pending review:
+- 3.1 actual GuardEngine mapping and recomputation; engine policy digest checked against scope; strict relation/version/field checks; partial scope yields real BLOCK/INDETERMINATE. Domain schema emitted separately; no current wire extension.
+- 3.2 actual strict check CLI and real GE prepare_attempt/finish lifecycle. stdout-only artifact bundle; no --report. Real 0/2/3/4, post-bind cancellation/error null, immutable required scope set includes candidate binding digest; failed final observations clear coverage. Actual external signal delivery remains untested; cooperative bound token path is covered.
+- 4.1 deliberate always-denied optional writer, default feature/config disabled and enabled-feature path still rejects without external authorization. No transport or credentials implemented.
+- 3.6 provider survey intentionally not started, keeping this slice small for independent review. GE-TRUST/provider and privileged operations remain separate future work.
+
+TDD: projection unsupported scaffold RED 0/2 -> GREEN2/2; CLI scaffold RED3 failed/1 passed -> GREEN4/4; executor accepting scaffold RED0/2 -> GREEN2/2 in both default and feature-enabled builds; oversized 129-rule contract RED accepted -> rejected GREEN; final error coverage RED retained Complete -> cleared Partial GREEN. Logs under /workspace/guard-implementation-ledger/gitguard-slice2-*.log. Engine's AttemptOutput.coverage was added during this slice; initial executor test compile failure is recorded separately from the subsequent genuine behavioral RED.
+
+Final verification: `cargo test` 32 integration tests passed, zero failures (empty unit/bin/doc suites); feature-enabled executor tests 2/2; `cargo clippy --all-targets --all-features -- -D warnings`, `cargo fmt --check`, `git diff --check` passed; strict OpenSpec passed 1/1 with zero issues. Source dependency GuardEngine observed at 1498970670b4b364430b091836c23cb37abc75f8. No new task checkbox updates before root review.
