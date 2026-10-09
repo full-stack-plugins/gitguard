@@ -34,3 +34,6 @@ pub mod apply;
 #[cfg(target_os = "linux")]
 #[path = "../../adapters/platform_write.rs"]
 pub mod platform_write;
+
+#[cfg(target_os = "linux")]
+pub mod reconcile;

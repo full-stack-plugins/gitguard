@@ -837,3 +837,66 @@ fn local_push_transfers_missing_candidate_before_exact_cas() {
     assert!(!marker.exists());
     assert_eq!(e.source.state(), before);
 }
+
+#[test]
+fn successful_cas_persists_ack_before_returning() {
+    let e = evidence(Enforcement::Advise, false, false);
+    let before = e.source.state();
+    let d = bare(&e);
+    let marker = d.path().join("hook-ran");
+    std::fs::write(
+        d.path().join("hooks/reference-transaction"),
+        format!("#!/bin/sh\necho unsafe > {}\n", marker.display()),
+    )
+    .unwrap();
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(
+            d.path().join("hooks/reference-transaction"),
+            std::fs::Permissions::from_mode(0o700),
+        )
+        .unwrap();
+    }
+    let target = ProtectedBareTarget::open(d.path(), "repo").unwrap();
+    let root = tempfile::Builder::new()
+        .permissions(std::fs::Permissions::from_mode(0o700))
+        .prefix(".apply-intent-")
+        .tempdir_in(env!("CARGO_MANIFEST_DIR"))
+        .unwrap();
+    let intents = IntentStore::create(root.path()).unwrap();
+    let (session, authority) = session(&e, GrantAction::Merge, "refs/heads/main", "operation");
+    let cancel = AtomicBool::new(false);
+    let config = ExecutionConfig { enabled: true };
+    let context = ApplyContext {
+        config: &config,
+        repository: &e.repo,
+        candidate: &e.candidate,
+        session: &session,
+        authority: &authority,
+        clock: &Clock,
+        grant_reference: "fixture:grant",
+        intents: &intents,
+        cancel: &cancel,
+    };
+    let result = apply(&context, &target);
+    if cfg!(feature = "privileged-execution") {
+        assert_eq!(result.unwrap().candidate_oid(), e.candidate.candidate_oid());
+        assert_eq!(
+            common::git(d.path(), &["rev-parse", "refs/heads/main"]),
+            e.candidate.candidate_oid()
+        );
+        let journal: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(root.path().join("intent.json")).unwrap())
+                .unwrap();
+        assert_eq!(journal["events"][2]["state"], "applied");
+        assert!(apply(&context, &target).is_err());
+    } else {
+        assert!(matches!(result, Err(ApplyError::Disabled)));
+        assert_eq!(
+            common::git(d.path(), &["rev-parse", "refs/heads/main"]),
+            e.source.base
+        );
+    }
+    assert!(!marker.exists());
+    assert_eq!(e.source.state(), before);
+}

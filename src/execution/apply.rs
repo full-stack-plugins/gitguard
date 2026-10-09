@@ -132,6 +132,10 @@ fn apply_inner(
         let _ = context.intents.mark_uncertain(reservation);
         return Err(ApplyError::RecoveryRequired);
     }
+    if context.intents.mark_applied(&reservation).is_err() {
+        let _ = context.intents.mark_uncertain(reservation);
+        return Err(ApplyError::RecoveryRequired);
+    }
     Ok(LocalCasReceipt {
         candidate_oid: expected.candidate_oid().into(),
         operation_id: expected.operation_id().into(),
@@ -306,5 +310,23 @@ mod tests {
         assert_eq!(j["events"][2]["state"], "recovery_required");
         assert!(apply(&context, &target).is_err());
         assert_eq!(git(bare.path(), &["rev-parse", "refs/heads/main"]), head);
+        use crate::execution::reconcile::{RecoveryState, reconcile};
+        assert_eq!(
+            reconcile(&session, &intents, &target).unwrap(),
+            RecoveryState::RecoveryRequired
+        );
+        let tree = git(bare.path(), &["rev-parse", &format!("{head}^{{tree}}")]);
+        let later = git(
+            bare.path(),
+            &["commit-tree", &tree, "-p", &head, "-m", "later"],
+        );
+        git(bare.path(), &["update-ref", "refs/heads/main", &later]);
+        drop(intents);
+        let reopened = IntentStore::open(root.path()).unwrap();
+        assert_eq!(
+            reconcile(&session, &reopened, &target).unwrap(),
+            RecoveryState::RecoveryRequired
+        );
+        assert_eq!(git(bare.path(), &["rev-parse", "refs/heads/main"]), later);
     }
 }

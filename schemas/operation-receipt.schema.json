@@ -38,7 +38,8 @@
       "enum": [
         "prepared",
         "attempt_recorded",
-        "recovery_required"
+        "recovery_required",
+        "applied"
       ]
     }
   },
@@ -80,6 +81,22 @@
         "properties": {
           "state": {
             "const": "recovery_required"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "generation": {
+            "const": 2
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "applied"
           }
         }
       },

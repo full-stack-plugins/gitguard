@@ -34,6 +34,7 @@ pub enum IntentState {
     Prepared,
     AttemptRecorded,
     RecoveryRequired,
+    Applied,
 }
 /// Historical storage state, never a platform receipt or permission. No Deserialize API.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
@@ -167,9 +168,10 @@ impl Snapshot {
                             (IntentState::Prepared, IntentState::AttemptRecorded) => {
                                 event.generation == 1
                             }
-                            (IntentState::AttemptRecorded, IntentState::RecoveryRequired) => {
-                                event.generation == 2
-                            }
+                            (
+                                IntentState::AttemptRecorded,
+                                IntentState::RecoveryRequired | IntentState::Applied,
+                            ) => event.generation == 2,
                             _ => false,
                         }
                 }
@@ -410,6 +412,27 @@ impl IntentStore {
         .map_err(|_| IntentError::Invalid)?;
         self.prepare_digest(expected, &digest)
     }
+    pub(crate) fn lookup_for_platform(
+        &self,
+        expected: &GrantExpectation,
+        platform: &str,
+    ) -> Result<Option<IntentReceipt>, IntentError> {
+        if !digest_valid(platform) {
+            return Err(IntentError::Invalid);
+        }
+        let digest = guardengine::digest_json(&(
+            "gitguard.local-apply/v1alpha1",
+            expected.digest(),
+            platform,
+        ))
+        .map_err(|_| IntentError::Invalid)?;
+        let _lock = self.lock()?;
+        let (_, mut records) = self.load()?;
+        match records.remove(expected.operation_id()) {
+            Some(receipt) if receipt.request_digest != digest => Err(IntentError::Conflict),
+            receipt => Ok(receipt),
+        }
+    }
     fn prepare_digest(
         &self,
         expected: &GrantExpectation,
@@ -467,7 +490,10 @@ impl IntentStore {
         if !matches!(
             (current.state, state),
             (IntentState::Prepared, IntentState::AttemptRecorded)
-                | (IntentState::AttemptRecorded, IntentState::RecoveryRequired)
+                | (
+                    IntentState::AttemptRecorded,
+                    IntentState::RecoveryRequired | IntentState::Applied
+                )
         ) {
             return Err(IntentError::Stale);
         }
@@ -489,6 +515,13 @@ impl IntentStore {
         }
         self.transition(prepared, IntentState::AttemptRecorded)
             .map(|receipt| AttemptReservation { receipt })
+    }
+    /// Only the executor can attest that its actual platform write returned success.
+    pub(crate) fn mark_applied(
+        &self,
+        reservation: &AttemptReservation,
+    ) -> Result<IntentReceipt, IntentError> {
+        self.transition(&reservation.receipt, IntentState::Applied)
     }
     pub fn mark_uncertain(
         &self,
