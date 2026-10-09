@@ -1,7 +1,9 @@
 use crate::{
     Repository,
     cli::CheckRequest,
-    evidence::projection::{ANALYZER_ID, ANALYZER_VERSION, FrozenPolicy, MAPPING_VERSION, project},
+    evidence::projection::{
+        ANALYZER_ID, ANALYZER_VERSION, FrozenPolicy, MAPPING_VERSION, evaluate_projected, project,
+    },
     preflight::{PreflightResult, preflight},
     subject::{SubjectRequest, hash},
 };
@@ -155,7 +157,12 @@ impl BoundCheck {
         let projection = if cancel.load(Ordering::SeqCst) {
             None
         } else {
-            Some(project(&self.repo, &self.result, &self.policy))
+            Some(
+                project(&self.repo, &self.result, &self.policy).and_then(|facts| {
+                    let report = evaluate_projected(&self.policy, &facts)?;
+                    Ok((facts, report))
+                }),
+            )
         };
         let (run_status, decision, diagnostics) = if cancel.load(Ordering::SeqCst) {
             (
@@ -170,10 +177,8 @@ impl BoundCheck {
             )
         } else {
             match projection.unwrap_or_else(|| Err("cancelled".into())) {
-                Ok(fact_set) => {
+                Ok((fact_set, evaluated)) => {
                     let engine_contract = self.policy.contract();
-                    let evaluated = guardengine::evaluate(&engine_contract, &fact_set)
-                        .map_err(|_| "engine evaluation failed")?;
                     let decision = evaluated.decision.clone();
                     let diagnostic = if fact_set.completeness == Completeness::Partial {
                         vec![Diagnostic {

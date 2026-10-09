@@ -145,22 +145,57 @@ pub fn project(
     let fact_bytes = serde_json::to_vec(&facts)
         .map_err(|_| "fact serialization failed")?
         .len();
-    let rules = policy.contract.spec.rules.len();
-    if fact_bytes > 1_048_576
-        || facts.facts.len() > 4096
-        || rules.saturating_mul(facts.facts.len()) > 100_000
-        || rules.saturating_mul(
-            fact_bytes
-                .saturating_add(
-                    facts
-                        .facts
-                        .len()
-                        .saturating_mul(std::mem::size_of::<GuardFact>()),
-                )
-                .saturating_add(1024),
-        ) > 8_388_608
-    {
-        return Err("evaluation budget exceeded".into());
+    if fact_bytes > 1_048_576 || facts.facts.len() > 4096 {
+        return Err("mapping input budget exceeded".into());
     }
     Ok(facts)
+}
+
+/// Evaluate projected facts with the integration producer's resource boundary.
+pub fn evaluate_projected(
+    policy: &FrozenPolicy,
+    facts: &GuardFacts,
+) -> Result<guardengine::GuardReport, String> {
+    guardengine::integration::evaluate_bounded(&policy.contract(), facts)
+        .map_err(|_| "engine evaluation failed".into())
+}
+#[cfg(test)]
+mod budget_tests {
+    use super::*;
+    #[test]
+    fn repeated_matching_rules_refuse_report_amplification() {
+        let mut contract = FrozenPolicy::new(Enforcement::Enforce).contract();
+        let rule = contract.spec.rules[0].clone();
+        contract.spec.rules = (0..128)
+            .map(|i| {
+                let mut r = rule.clone();
+                r.id = format!("rule-{i}");
+                r
+            })
+            .collect();
+        let policy = FrozenPolicy::from_contract(contract).unwrap();
+        let facts = GuardFacts {
+            api_version: guardengine::API_VERSION.into(),
+            kind: "GuardFacts".into(),
+            analyzer: AnalyzerIdentity {
+                id: ANALYZER_ID.into(),
+                version: ANALYZER_VERSION.into(),
+            },
+            subject: GuardSubject {
+                id: "git-scope:budget-fixture".into(),
+                snapshot_digest: format!("sha256:{}", "a".repeat(64)),
+            },
+            completeness: Completeness::Complete,
+            facts: (0..4096)
+                .map(|i| GuardFact {
+                    subject: "git-candidate".into(),
+                    predicate: "violates".into(),
+                    object: "task-scope".into(),
+                    source: format!("git-path-sha256:{}", hash(i.to_string().as_bytes())),
+                })
+                .collect(),
+            diagnostics: vec![],
+        };
+        assert!(evaluate_projected(&policy, &facts).is_err());
+    }
 }

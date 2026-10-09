@@ -1,0 +1,583 @@
+{
+  "provider_commit": "310c43c5e3fe7effa19245dcc4970249e569004c",
+  "plugin_version": "0.2.0",
+  "candidate_oid": "7fdb5aa34dee71dc972e7c8f3a80c8d562727aa8",
+  "base_oid": "dd901f12b5bd2d7e8f95395d624566c1909dba16",
+  "native": [
+    {
+      "case": "allow",
+      "argv": [
+        "check",
+        "<fixture>",
+        "--base",
+        "dd901f12b5bd2d7e8f95395d624566c1909dba16",
+        "--head",
+        "7fdb5aa34dee71dc972e7c8f3a80c8d562727aa8",
+        "--source",
+        "feature/task",
+        "--target",
+        "develop",
+        "--json"
+      ],
+      "exit": 0,
+      "stdout": {
+        "schema_version": "1.0.0",
+        "action": "check",
+        "decision": "allow",
+        "reasons": [],
+        "next_actions": [],
+        "base": "dd901f12b5bd2d7e8f95395d624566c1909dba16",
+        "head": "7fdb5aa34dee71dc972e7c8f3a80c8d562727aa8",
+        "source": "feature/task",
+        "target": "develop",
+        "policy_ref": "dd901f12b5bd2d7e8f95395d624566c1909dba16",
+        "policy_sha256": "890bd93513538e41318f9a5d23e68036252c11f2ce2849aa84fd766217164378",
+        "revision": 1,
+        "commit_count": 1,
+        "commits": [
+          {
+            "oid": "7fdb5aa34dee71dc972e7c8f3a80c8d562727aa8",
+            "decision": "allow",
+            "checks": [
+              {
+                "rule_id": "GF001",
+                "name": "commit.conventional",
+                "severity": "off",
+                "status": "skipped",
+                "actual": null,
+                "expected": {
+                  "types": [
+                    "feat",
+                    "fix",
+                    "docs",
+                    "style",
+                    "refactor",
+                    "perf",
+                    "test",
+                    "build",
+                    "ci",
+                    "chore",
+                    "revert"
+                  ],
+                  "allow_merge": true
+                },
+                "message": "未启用或不适用于此检查。",
+                "suggestion": null,
+                "fix": null
+              },
+              {
+                "rule_id": "GF002",
+                "name": "commit.subject_length",
+                "severity": "off",
+                "status": "skipped",
+                "actual": null,
+                "expected": {
+                  "min_length": 1,
+                  "max_length": 72
+                },
+                "message": "未启用或不适用于此检查。",
+                "suggestion": null,
+                "fix": null
+              },
+              {
+                "rule_id": "GF101",
+                "name": "author.name",
+                "severity": "off",
+                "status": "skipped",
+                "actual": null,
+                "expected": {
+                  "pattern": "[^\\r\\n<>]+"
+                },
+                "message": "未启用或不适用于此检查。",
+                "suggestion": null,
+                "fix": null
+              },
+              {
+                "rule_id": "GF102",
+                "name": "author.email",
+                "severity": "off",
+                "status": "skipped",
+                "actual": null,
+                "expected": {
+                  "pattern": "[^\\s@]+@[^\\s@]+"
+                },
+                "message": "未启用或不适用于此检查。",
+                "suggestion": null,
+                "fix": null
+              },
+              {
+                "rule_id": "GF103",
+                "name": "commit.signoff",
+                "severity": "off",
+                "status": "skipped",
+                "actual": null,
+                "expected": {},
+                "message": "未启用或不适用于此检查。",
+                "suggestion": null,
+                "fix": null
+              },
+              {
+                "rule_id": "GF104",
+                "name": "commit.ai_disclosure",
+                "severity": "off",
+                "status": "skipped",
+                "actual": null,
+                "expected": {
+                  "mode": "ignore"
+                },
+                "message": "未启用或不适用于此检查。",
+                "suggestion": null,
+                "fix": null
+              },
+              {
+                "rule_id": "GF401",
+                "name": "tag.format",
+                "severity": "off",
+                "status": "skipped",
+                "actual": null,
+                "expected": {
+                  "pattern": "v[0-9]+\\.[0-9]+\\.[0-9]+"
+                },
+                "message": "未启用或不适用于此检查。",
+                "suggestion": null,
+                "fix": null
+              }
+            ],
+            "reasons": []
+          }
+        ],
+        "message_mode": "commits",
+        "squash_checks": [],
+        "tag_checks": [
+          {
+            "rule_id": "GF001",
+            "name": "commit.conventional",
+            "severity": "off",
+            "status": "skipped",
+            "actual": null,
+            "expected": {
+              "types": [
+                "feat",
+                "fix",
+                "docs",
+                "style",
+                "refactor",
+                "perf",
+                "test",
+                "build",
+                "ci",
+                "chore",
+                "revert"
+              ],
+              "allow_merge": true
+            },
+            "message": "未启用或不适用于此检查。",
+            "suggestion": null,
+            "fix": null
+          },
+          {
+            "rule_id": "GF002",
+            "name": "commit.subject_length",
+            "severity": "off",
+            "status": "skipped",
+            "actual": null,
+            "expected": {
+              "min_length": 1,
+              "max_length": 72
+            },
+            "message": "未启用或不适用于此检查。",
+            "suggestion": null,
+            "fix": null
+          },
+          {
+            "rule_id": "GF101",
+            "name": "author.name",
+            "severity": "off",
+            "status": "skipped",
+            "actual": null,
+            "expected": {
+              "pattern": "[^\\r\\n<>]+"
+            },
+            "message": "未启用或不适用于此检查。",
+            "suggestion": null,
+            "fix": null
+          },
+          {
+            "rule_id": "GF102",
+            "name": "author.email",
+            "severity": "off",
+            "status": "skipped",
+            "actual": null,
+            "expected": {
+              "pattern": "[^\\s@]+@[^\\s@]+"
+            },
+            "message": "未启用或不适用于此检查。",
+            "suggestion": null,
+            "fix": null
+          },
+          {
+            "rule_id": "GF103",
+            "name": "commit.signoff",
+            "severity": "off",
+            "status": "skipped",
+            "actual": null,
+            "expected": {},
+            "message": "未启用或不适用于此检查。",
+            "suggestion": null,
+            "fix": null
+          },
+          {
+            "rule_id": "GF104",
+            "name": "commit.ai_disclosure",
+            "severity": "off",
+            "status": "skipped",
+            "actual": null,
+            "expected": {
+              "mode": "ignore"
+            },
+            "message": "未启用或不适用于此检查。",
+            "suggestion": null,
+            "fix": null
+          },
+          {
+            "rule_id": "GF401",
+            "name": "tag.format",
+            "severity": "off",
+            "status": "skipped",
+            "actual": null,
+            "expected": {
+              "pattern": "v[0-9]+\\.[0-9]+\\.[0-9]+"
+            },
+            "message": "未启用或不适用于此检查。",
+            "suggestion": null,
+            "fix": null
+          }
+        ],
+        "branch_origin": "not_inferred",
+        "server_protection": "unverified"
+      },
+      "stderr": ""
+    },
+    {
+      "case": "deny-target",
+      "argv": [
+        "check",
+        "<fixture>",
+        "--base",
+        "dd901f12b5bd2d7e8f95395d624566c1909dba16",
+        "--head",
+        "7fdb5aa34dee71dc972e7c8f3a80c8d562727aa8",
+        "--source",
+        "feature/task",
+        "--target",
+        "main",
+        "--json"
+      ],
+      "exit": 1,
+      "stdout": {
+        "schema_version": "1.0.0",
+        "action": "check",
+        "decision": "deny",
+        "reasons": [
+          {
+            "code": "merge_target_denied",
+            "message": "PR 源角色不允许合入目标角色。"
+          }
+        ],
+        "next_actions": [],
+        "base": "dd901f12b5bd2d7e8f95395d624566c1909dba16",
+        "head": "7fdb5aa34dee71dc972e7c8f3a80c8d562727aa8",
+        "source": "feature/task",
+        "target": "main",
+        "policy_ref": "dd901f12b5bd2d7e8f95395d624566c1909dba16",
+        "policy_sha256": "890bd93513538e41318f9a5d23e68036252c11f2ce2849aa84fd766217164378",
+        "revision": 1,
+        "commit_count": 1,
+        "commits": [
+          {
+            "oid": "7fdb5aa34dee71dc972e7c8f3a80c8d562727aa8",
+            "decision": "allow",
+            "checks": [
+              {
+                "rule_id": "GF001",
+                "name": "commit.conventional",
+                "severity": "off",
+                "status": "skipped",
+                "actual": null,
+                "expected": {
+                  "types": [
+                    "feat",
+                    "fix",
+                    "docs",
+                    "style",
+                    "refactor",
+                    "perf",
+                    "test",
+                    "build",
+                    "ci",
+                    "chore",
+                    "revert"
+                  ],
+                  "allow_merge": true
+                },
+                "message": "未启用或不适用于此检查。",
+                "suggestion": null,
+                "fix": null
+              },
+              {
+                "rule_id": "GF002",
+                "name": "commit.subject_length",
+                "severity": "off",
+                "status": "skipped",
+                "actual": null,
+                "expected": {
+                  "min_length": 1,
+                  "max_length": 72
+                },
+                "message": "未启用或不适用于此检查。",
+                "suggestion": null,
+                "fix": null
+              },
+              {
+                "rule_id": "GF101",
+                "name": "author.name",
+                "severity": "off",
+                "status": "skipped",
+                "actual": null,
+                "expected": {
+                  "pattern": "[^\\r\\n<>]+"
+                },
+                "message": "未启用或不适用于此检查。",
+                "suggestion": null,
+                "fix": null
+              },
+              {
+                "rule_id": "GF102",
+                "name": "author.email",
+                "severity": "off",
+                "status": "skipped",
+                "actual": null,
+                "expected": {
+                  "pattern": "[^\\s@]+@[^\\s@]+"
+                },
+                "message": "未启用或不适用于此检查。",
+                "suggestion": null,
+                "fix": null
+              },
+              {
+                "rule_id": "GF103",
+                "name": "commit.signoff",
+                "severity": "off",
+                "status": "skipped",
+                "actual": null,
+                "expected": {},
+                "message": "未启用或不适用于此检查。",
+                "suggestion": null,
+                "fix": null
+              },
+              {
+                "rule_id": "GF104",
+                "name": "commit.ai_disclosure",
+                "severity": "off",
+                "status": "skipped",
+                "actual": null,
+                "expected": {
+                  "mode": "ignore"
+                },
+                "message": "未启用或不适用于此检查。",
+                "suggestion": null,
+                "fix": null
+              },
+              {
+                "rule_id": "GF401",
+                "name": "tag.format",
+                "severity": "off",
+                "status": "skipped",
+                "actual": null,
+                "expected": {
+                  "pattern": "v[0-9]+\\.[0-9]+\\.[0-9]+"
+                },
+                "message": "未启用或不适用于此检查。",
+                "suggestion": null,
+                "fix": null
+              }
+            ],
+            "reasons": []
+          }
+        ],
+        "message_mode": "commits",
+        "squash_checks": [],
+        "tag_checks": [
+          {
+            "rule_id": "GF001",
+            "name": "commit.conventional",
+            "severity": "off",
+            "status": "skipped",
+            "actual": null,
+            "expected": {
+              "types": [
+                "feat",
+                "fix",
+                "docs",
+                "style",
+                "refactor",
+                "perf",
+                "test",
+                "build",
+                "ci",
+                "chore",
+                "revert"
+              ],
+              "allow_merge": true
+            },
+            "message": "未启用或不适用于此检查。",
+            "suggestion": null,
+            "fix": null
+          },
+          {
+            "rule_id": "GF002",
+            "name": "commit.subject_length",
+            "severity": "off",
+            "status": "skipped",
+            "actual": null,
+            "expected": {
+              "min_length": 1,
+              "max_length": 72
+            },
+            "message": "未启用或不适用于此检查。",
+            "suggestion": null,
+            "fix": null
+          },
+          {
+            "rule_id": "GF101",
+            "name": "author.name",
+            "severity": "off",
+            "status": "skipped",
+            "actual": null,
+            "expected": {
+              "pattern": "[^\\r\\n<>]+"
+            },
+            "message": "未启用或不适用于此检查。",
+            "suggestion": null,
+            "fix": null
+          },
+          {
+            "rule_id": "GF102",
+            "name": "author.email",
+            "severity": "off",
+            "status": "skipped",
+            "actual": null,
+            "expected": {
+              "pattern": "[^\\s@]+@[^\\s@]+"
+            },
+            "message": "未启用或不适用于此检查。",
+            "suggestion": null,
+            "fix": null
+          },
+          {
+            "rule_id": "GF103",
+            "name": "commit.signoff",
+            "severity": "off",
+            "status": "skipped",
+            "actual": null,
+            "expected": {},
+            "message": "未启用或不适用于此检查。",
+            "suggestion": null,
+            "fix": null
+          },
+          {
+            "rule_id": "GF104",
+            "name": "commit.ai_disclosure",
+            "severity": "off",
+            "status": "skipped",
+            "actual": null,
+            "expected": {
+              "mode": "ignore"
+            },
+            "message": "未启用或不适用于此检查。",
+            "suggestion": null,
+            "fix": null
+          },
+          {
+            "rule_id": "GF401",
+            "name": "tag.format",
+            "severity": "off",
+            "status": "skipped",
+            "actual": null,
+            "expected": {
+              "pattern": "v[0-9]+\\.[0-9]+\\.[0-9]+"
+            },
+            "message": "未启用或不适用于此检查。",
+            "suggestion": null,
+            "fix": null
+          }
+        ],
+        "branch_origin": "not_inferred",
+        "server_protection": "unverified"
+      },
+      "stderr": ""
+    },
+    {
+      "case": "unknown-object",
+      "argv": [
+        "check",
+        "<fixture>",
+        "--base",
+        "dd901f12b5bd2d7e8f95395d624566c1909dba16",
+        "--head",
+        "0000000000000000000000000000000000000000",
+        "--source",
+        "feature/task",
+        "--target",
+        "develop",
+        "--json"
+      ],
+      "exit": 3,
+      "stdout": {
+        "schema_version": "1.0.0",
+        "action": "check",
+        "decision": "unverified",
+        "reasons": [
+          {
+            "code": "ci_object_unknown",
+            "message": "CI 必须提供本地存在的完整 commit OID；检查不会自动 fetch。"
+          }
+        ],
+        "next_actions": []
+      },
+      "stderr": ""
+    },
+    {
+      "case": "usage",
+      "argv": [
+        "check",
+        "<fixture>",
+        "--unknown-flag"
+      ],
+      "exit": 2,
+      "stdout": {
+        "schema_version": "1.0.0",
+        "action": "usage",
+        "decision": "error",
+        "reasons": [
+          {
+            "code": "usage_invalid",
+            "message": "unrecognized arguments: --unknown-flag"
+          }
+        ],
+        "next_actions": []
+      },
+      "stderr": ""
+    }
+  ],
+  "gitguard": {
+    "exit": 0,
+    "decision": "ALLOW",
+    "required_scopes": [
+      "git.scope:4224a0008fd1bb1e5ff59bfb891c05dd94e6da9bfd47f8208cdd8b319d9e5116",
+      "git.source-clean",
+      "git.submodule-contents"
+    ]
+  },
+  "source_bytes_unchanged": true
+}
