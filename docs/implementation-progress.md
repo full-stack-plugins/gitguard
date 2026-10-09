@@ -154,3 +154,7 @@ Task1.2 is not self-accepted; existing14/28 and capability documentation remain.
 ## Independently reviewed bounded Git runner: 15/28
 
 Task1.2 is accepted for the explicit Linux x86_64 / trusted `/usr/bin/git` / stable source profile in52f07b08065f2594181102c71866649ee3864cad. Independent review repeated68tests plus3mechanism probes and1real packed/corrupted-object probe; syscall denial, process reaping, pipe budgets and unchanged source state passed. SIGSYS remains ProcessPolicyDenied, never a merge conflict. The reviewer could not exercise a functional compat-int80 environment and makes no compatibility-ABI or aarch64 runtime claim. See cloud ledger `gitguard-runner-independent-review.md`. Subsequent additive commit-tree readerc33b28a is separately pending review.
+
+## Independently reviewed local CLI/API/MCP ports: 16/28
+
+Task5.3 accepted for e7396c1 +805a09f after independent interface/capture review and an11-test fix retest. The MCP negotiation P2 is closed: unsupported client versions receive the supported2025-11-25 version; client decides whether to continue. API unknown versions and write capabilities still reject. Existing check behavior remains. Owner full82tests and strictclippy pass; reviewer retained its earlier live-GE fullsuite as supplementary evidence rather than a fixed-pin claim. Reports: cloud ledger gitguard-interface-independent-review.md and gitguard-interface-version-fix-report.md. No production authentication/write provider or host service is claimed.

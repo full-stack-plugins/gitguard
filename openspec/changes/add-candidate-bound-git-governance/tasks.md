@@ -76,7 +76,7 @@
 
 - [ ] 5.1 在 `adapters/github/`、`tests/github_protected_queue.rs` 冻结首个平台事件认证/required check/精确 queue candidate 能力，隔离集成环境实测 Hook 绕过仍阻断、组重建重验和实际 receipt 匹配；无法证明原子精确准入时标不支持。（Requirement: Protected platform rollout and recovery proof）
 - [ ] 5.2 在 `adapters/gitlab/`、`adapters/codegraph/` 与 `tests/extension_capabilities.rs` 单独验证第二平台语义及图谱版本/coverage，fixture 明确不支持字段/能力与缺图谱失败；不得套用 GitHub 字段或宣称 unknown 无冲突。（Requirement: Bounded Git observation and semantic uncertainty；Requirement: Audited compatibility rollout and extensible ports）
-- [ ] 5.3 在 `adapters/mcp/`、`src/api.rs` 与 `tests/interface_parity.rs` 实现版本化只读端口及显式写能力协商，复用核心绑定/授权；对 CLI/API/MCP 同 fixture 比较范围、状态和诊断，未知能力/版本拒绝，默认不给写凭据。（Requirement: Audited compatibility rollout and extensible ports）
+- [x] 5.3 在 `adapters/mcp/`、`src/api.rs` 与 `tests/interface_parity.rs` 实现版本化只读端口及显式写能力协商，复用核心绑定/授权；对 CLI/API/MCP 同 fixture 比较范围、状态和诊断，未知能力/版本拒绝，默认不给写凭据。（Requirement: Audited compatibility rollout and extensible ports）
 - [ ] 5.4 在 `docs/rollout-and-rollback.md`、`tests/rollout_rollback.rs` 落地 advisory→shadow→opt-in→enforcement 切换与独立 adapter/executor 回滚，保留历史/未知操作对账，差分未裁决不得强制；GE-RELEASE 后验证固定包版本与兼容矩阵，不改旧原生 CLI。（Requirement: Protected platform rollout and recovery proof；Requirement: Audited compatibility rollout and extensible ports）
 - [ ] 5.5 在 `tests/end_to_end_guard_gates.rs` 与 `fixtures/end-to-end/` 联合已就绪门槛：两个并行需求、exact synthetic queue candidate、baseline/expiry/revocation、drift、late completion、CodeGuard native parity、取消与回滚；保存真实输入/digest/报告/exit/receipt 对应证据，确认 FG-GATE 不授予 grant 且 read-only 阶段无循环依赖。（Requirement: Read-only candidate dependency boundary；Requirement: Protected platform rollout and recovery proof）
 
@@ -87,3 +87,5 @@ Independently reviewed local implementation accepts tasks 1.3, 1.5, 1.6, 2.1, 2.
 Reviewed checkpoint: 13/28 accepted after independent re-review of55718e0, including3.4 for the documented process-local history/CAS profile. See /workspace/guard-implementation-ledger/gitguard-reuse-fix-independent-review.md. Durable backenddf2f756 remains separately under review.
 
 Reviewed runner checkpoint: 15/28 accepted after independent review of52f07b0 for the explicit Linux x86_64 / trusted Git / stable source profile. Other operating systems and hostile mutable filesystems remain unsupported. Evidence: docs/implementation-progress.md and cloud ledger gitguard-runner-independent-review.md.
+
+Reviewed local ports checkpoint: 16/28 accepted after independent review of e7396c1 and MCP version-negotiation fix805a09f. Acceptance is the local advisory CLI/API/MCP read-only profile; unknown API versions/capabilities reject, MCP proposes its supported protocol version. No credential, remote identity provider, write authorization, or host-service rollout is accepted. Evidence: cloud ledger gitguard-interface-independent-review.md and gitguard-interface-version-fix-report.md.
