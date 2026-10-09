@@ -131,7 +131,7 @@ mod tests {
     use super::*;
     use crate::execution::grant::*;
     use crate::{candidate::CandidateRequest, scope::TaskScope, subject::SubjectRequest};
-    use std::{collections::BTreeSet, path::Path, process::Command};
+    use std::{collections::BTreeSet, os::unix::fs::PermissionsExt, path::Path, process::Command};
     fn git(p: &Path, args: &[&str]) -> String {
         let output = Command::new("/usr/bin/git")
             .arg("-C")
@@ -253,7 +253,10 @@ mod tests {
             )
             .unwrap(),
         );
-        let bare = tempfile::tempdir().unwrap();
+        let bare = tempfile::Builder::new()
+            .permissions(std::fs::Permissions::from_mode(0o700))
+            .tempdir()
+            .unwrap();
         git(bare.path(), &["init", "--bare", "-q"]);
         copy(
             &source.path().join(".git/objects"),
@@ -262,6 +265,7 @@ mod tests {
         git(bare.path(), &["update-ref", "refs/heads/main", &base]);
         let target = ProtectedBareTarget::open(bare.path(), "repo").unwrap();
         let root = tempfile::Builder::new()
+            .permissions(std::fs::Permissions::from_mode(0o700))
             .prefix(".apply-unit-")
             .tempdir_in(env!("CARGO_MANIFEST_DIR"))
             .unwrap();

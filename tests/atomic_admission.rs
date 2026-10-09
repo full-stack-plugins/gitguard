@@ -4,7 +4,7 @@ use gitguard::execution::{
     ExecutionConfig, apply::*, grant::*, intent::IntentStore, platform_write::ProtectedBareTarget,
 };
 use guardengine::Enforcement;
-use std::{collections::BTreeSet, sync::atomic::AtomicBool};
+use std::{collections::BTreeSet, os::unix::fs::PermissionsExt, sync::atomic::AtomicBool};
 struct Clock;
 impl GrantClock for Clock {
     fn adapter_id(&self) -> &str {
@@ -77,7 +77,10 @@ fn session(
     )
 }
 fn bare(e: &Evidence) -> tempfile::TempDir {
-    let d = tempfile::tempdir().unwrap();
+    let d = tempfile::Builder::new()
+        .permissions(std::fs::Permissions::from_mode(0o700))
+        .tempdir()
+        .unwrap();
     common::git(d.path(), &["init", "--bare", "-q"]);
     fn copy(from: &std::path::Path, to: &std::path::Path) {
         std::fs::create_dir_all(to).unwrap();
@@ -118,6 +121,7 @@ fn explicit_local_atomic_apply_never_changes_the_source_or_replays() {
     }
     let target = ProtectedBareTarget::open(d.path(), "repo").unwrap();
     let root = tempfile::Builder::new()
+        .permissions(std::fs::Permissions::from_mode(0o700))
         .prefix(".apply-intent-")
         .tempdir_in(env!("CARGO_MANIFEST_DIR"))
         .unwrap();
@@ -167,6 +171,7 @@ fn default_config_unsupported_actions_and_revoked_authority_never_claim() {
         GrantAction::Merge,
     ] {
         let root = tempfile::Builder::new()
+            .permissions(std::fs::Permissions::from_mode(0o700))
             .prefix(".apply-intent-")
             .tempdir_in(env!("CARGO_MANIFEST_DIR"))
             .unwrap();
@@ -221,6 +226,7 @@ fn branch_creation_and_stale_same_tree_commit_are_exact() {
     let d = bare(&e);
     let target = ProtectedBareTarget::open(d.path(), "repo").unwrap();
     let root = tempfile::Builder::new()
+        .permissions(std::fs::Permissions::from_mode(0o700))
         .prefix(".apply-intent-")
         .tempdir_in(env!("CARGO_MANIFEST_DIR"))
         .unwrap();
@@ -293,6 +299,7 @@ fn revocation_after_durable_claim_is_uncertain_and_never_retried() {
     let d = bare(&e);
     let target = ProtectedBareTarget::open(d.path(), "repo").unwrap();
     let root = tempfile::Builder::new()
+        .permissions(std::fs::Permissions::from_mode(0o700))
         .prefix(".apply-intent-")
         .tempdir_in(env!("CARGO_MANIFEST_DIR"))
         .unwrap();
@@ -356,11 +363,13 @@ fn two_prechecked_writers_cannot_overwrite_the_cas_winner() {
     let d = bare(&e);
     let target = ProtectedBareTarget::open(d.path(), "repo").unwrap();
     let root = tempfile::Builder::new()
+        .permissions(std::fs::Permissions::from_mode(0o700))
         .prefix(".apply-intent-")
         .tempdir_in(env!("CARGO_MANIFEST_DIR"))
         .unwrap();
     let intents = IntentStore::create(root.path()).unwrap();
     let root2 = tempfile::Builder::new()
+        .permissions(std::fs::Permissions::from_mode(0o700))
         .prefix(".apply-intent-")
         .tempdir_in(env!("CARGO_MANIFEST_DIR"))
         .unwrap();
@@ -459,6 +468,7 @@ fn non_ancestor_old_commit_is_never_force_updated() {
     let d = bare(&e);
     let target = ProtectedBareTarget::open(d.path(), "repo").unwrap();
     let root = tempfile::Builder::new()
+        .permissions(std::fs::Permissions::from_mode(0o700))
         .prefix(".apply-intent-")
         .tempdir_in(env!("CARGO_MANIFEST_DIR"))
         .unwrap();
@@ -510,6 +520,7 @@ fn prepared_operation_cannot_be_redirected_to_another_bare_directory() {
     let target = ProtectedBareTarget::open(first.path(), "repo").unwrap();
     let other = ProtectedBareTarget::open(second.path(), "repo").unwrap();
     let root = tempfile::Builder::new()
+        .permissions(std::fs::Permissions::from_mode(0o700))
         .prefix(".apply-intent-")
         .tempdir_in(env!("CARGO_MANIFEST_DIR"))
         .unwrap();
