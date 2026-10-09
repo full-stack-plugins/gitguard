@@ -1,47 +1,63 @@
-# GitGuard — Git 守卫
+# GitGuard
 
 [English](README.md) · [简体中文](README.zh-CN.md)
 
-GitGuard 面向 **AI 多智能体并行研发**，管控分支、Worktree、任务变更范围、候选代码、语义冲突、合入基线和受保护分支的安全性。
+**面向 AI 原生研发的 Git 策略、变更范围、并行任务分析、精确合并候选与安全 Git 操作。**
 
-> **当前状态：架构与技术方案文档已完成；新的 GitGuard CLI、MCP 和服务端强制门禁尚未实现。** 已有能力继续保留在 [gitflow-plugin](https://github.com/full-stack-plugins/gitflow-plugin)，后续经差分验证再迁移。
+> **当前只有文档。** 2026-10-09 检查 main 提交 `e03b5fd06d8b3d81d4bbbd11ff0fb70bea00d485`，仓库只有两份 README 和两份设计文档，没有 CLI、MCP 服务、可执行程序、构建清单、测试、Schema 或 OpenSpec 目录。下述组件、命令和阶段均为目标方案。独立的 [gitflow-plugin](https://github.com/full-stack-plugins/gitflow-plugin) 是**尚未核验的兼容目标**；本次没有检查其实现或行为。
 
-## 最重要的工程问题
+## 问题与方案
 
-Agent A 修改订单聚合，Agent B 修改支付服务，即使没有改同一个文件，也可能因共享 API 破坏兼容性。更危险的是：任务在旧 main 上检查通过，真正合并时 main 已变更。这不是一个 Git Hook 能单独保证的。
+两个 Agent 修改不同文件，仍可能破坏同一个 API；本地 Hook 通过后，目标分支也可能继续前进。GitGuard 计划把批准的变更范围、真实 Git 对象、隔离的任务观察结果和验证证据绑定到**受保护合并机制实际接纳的精确候选**。
 
 ~~~text
-任务批准范围 → 分支/变更实际检查 → 影响/冲突分析
-                                      │
-                            构造最终合并候选
-                                      │
-                       GuardEngine + 技术证据
-                                      │
-                     FlowGuard 许可 + 可信 Git 执行器
-                                      │
-                     受保护目标分支 / 合并队列
+批准的需求基线 + 任务范围 + 观察到的目标 OID
+                     ↓
+          分支 / Worktree / 真实 Diff 检查
+                     ↓
+             并行任务语义影响预警
+                     ↓
+           不可变候选 / 合并队列组绑定
+                     ↓
+           领域事实 → GuardEngine 证据
+                     ↓
+         FlowGuard 门禁 + 认证的操作许可
+                     ↓
+          可信执行器 + 受保护的原子准入
 ~~~
 
-## 核心职责
+## 边界与场景
 
-- Branch/Worktree Guard：任务分支身份、来源、命名、生命周期。
-- Change Scope Guard：允许的文件/模块/公共契约范围及真实 diff。
-- Semantic Conflict Guard：不同任务对共享符号/API/Schema 的潜在影响；不完整图谱标 unknown。
-- Merge/Baseline Guard：确认真实最终候选、最新目标版本、合并门禁与证据失效。
-- Trusted Git Operations：校验操作对象和授权、原子目标引用条件、未知结果对账。
+GitGuard 负责仓库与提交身份、分支/Worktree 策略、真实变更范围、候选新鲜度和 Git 写安全。SpecGuard 定义需求批准含义，ArchGuard 负责架构，CodeGuard 负责代码策略，TestGuard 负责测试证据，FlowGuard 负责流程授权。GuardEngine 提供通用契约校验、中立规则求值和确定性证据计算，不签发批准或执行合并；六个守卫相互独立。
 
-**GitGuard 的局部 PASS 不等于整个工程质量通过。** 它消费 SpecGuard/ArchGuard/CodeGuard/TestGuard 的相应证据，不能自行创建技术审批。GuardEngine 负责通用协议；FlowGuard 管理整个研发流程审批。
+- **并行需求：** 每个任务/Worktree 运行隔离；共享文件、API、Schema 产生冲突观察。迟到结果不能覆盖新候选证据。
+- **合并队列：** 校验实际队列候选、基线和组身份。PR HEAD 的证据不能授权不同候选；目标/队列组变化使相关结果失效。
+- **受控写入：** 预览只读；独立获授权的执行器验证范围有限且有时效的许可及预期目标 OID。写结果未知时，先向远端对账再决定是否重试。
+
+输入是可信任务/范围与基线引用、本地 Git 对象和明确目标快照；规划输出为领域观察、不可变候选引用、符合协议的证据和独立操作回执。`ALLOW` 是限定范围的技术决定，不是合并/发布权限。批准不能覆盖分析不完整或工具失败。
+
+Worktree 只隔离目录，**不隔离安全权限**。准入必须由受保护分支、独立必需检查和可信执行身份强制实施。契约和 CI 策略来自受保护来源，不能信任待检候选自己修改的规则。
+
+## 协议与交付状态
+
+共享现行协议 `guard.partme.ai/v1alpha1` 只包含 GuardContract YAML、GuardFacts JSON、GuardReport JSON，规则为精确 `forbid_relation`，严格限制字段，支持 `enforce`/`review`/`advise`。它没有 Git 候选或授权字段；GitGuard 尚无适配器。验证仅重算未签名证据，不证明身份或授权。
+
+规划的[集成契约](docs/integration-contract.md) 在现有线格式之外携带任务/需求/Worktree/候选绑定；草案 `guard.integration/v1alpha1` 不被当前引擎解析。未来检查命令目标退出码为 0 `ALLOW`、2 `BLOCK`、3 `REQUIRE_APPROVAL`、4 输入/运行/验证错误；GitGuard 当前均未实现。部分事实应返回 `BLOCK` 与 `INDETERMINATE`，不能放行。
 
 ## 文档
 
-[架构设计](docs/architecture.md) · [详细技术方案](docs/technical-design.md)
+- [架构、边界、并发与信任决策](docs/architecture.md)
+- [技术方案、接口、恢复与可衡量阶段](docs/technical-design.md)
+- [共享集成契约（草案）](docs/integration-contract.md)
+- [GuardEngine 协议](https://github.com/full-stack-plugins/guardengine/blob/main/docs/protocol.md)
 
-## 规划命令（尚不可运行）
+## 规划 CLI — 尚不可运行
 
 ~~~sh
+# 仅为设计示例；仓库没有 gitguard 程序。
 gitguard scope check --task TASK-104 --base main --head HEAD
 gitguard conflict analyze --task TASK-104
 gitguard merge preview --target main --head HEAD
 ~~~
 
-首次开发先复用现有 GitFlow 规则和兼容配置，建立精确 Git 候选及越权变更负例；随后完成真实 CI、受保护分支和并行语义冲突验证。不会因为“代码没有文本冲突”就断言合并安全。
+可变 ref 参数仅为便捷输入：未来实现必须一次解析为不可变 OID 并记录解析结果。首期建立只读观察与精确候选测试，再以固定 provider 版本和差分测试评估旧插件兼容性。只读检查不允许强推、破坏性 reset、删除分支、隐藏 fetch 或执行策略脚本。

@@ -1,90 +1,108 @@
 # GitGuard — Git 与变更治理架构
 
-> GitGuard | 目标架构 V0.1 | 当前未实现产品引擎，仅有初始仓库；GitFlow 现有能力是待核验的独立依赖 | 2026-10-09
+> 目标架构，尚未实现。证据基线：2026-10-09 检查 main `e03b5fd06d8b3d81d4bbbd11ff0fb70bea00d485` 的完整 tracked tree，仅有 `README.md`、`README.zh-CN.md`、`docs/architecture.md`、`docs/technical-design.md`。没有源码、测试、配置、构建清单、OpenSpec 或可执行门禁；文档不代表通过实现验证。
 
-## 1. 定位与权责
+## 1. 定位、输入输出与权责
 
-GitGuard 针对**AI 多任务并行开发和合并风险**，确保“该任务被允许修改什么、修改基于哪个版本、是否影响其他任务、此次合入的是哪一个最终候选”。它不决定需求正确性（SpecGuard）、架构好坏（ArchGuard）、代码质量（CodeGuard）或测试充分性（TestGuard）。FlowGuard 负责批准/阶段；GuardEngine 提供通用策略、规则及证据协议，真正执行 Git 写操作及校验目标版本属于 GitGuard 与可信 Git 平台。
+GitGuard 回答“任务允许修改什么、基于哪个不可变版本、与哪些并行任务相互影响、最终检查和合入是否为同一对象”。它面向本地任务隔离、CI 变更范围校验、合并队列和受控 Git 写入。离线只读检查只能证明本地快照，不能证明远端当前状态。
 
-局部 Git 检查 PASS **不等于**获得受保护分支写权限。Worktree 是目录隔离，不是 OS 级安全沙箱；受信合入必须由独立权限/CI/分支保护机制实施。
+| 边界 | 所有者与责任 |
+|---|---|
+| 需求及批准基线含义 | SpecGuard；可信控制面认证批准者、范围、时效 |
+| 架构、代码、测试 | 分别由 ArchGuard、CodeGuard、TestGuard 产生自己的领域证据 |
+| 流程推进及所需审批 | FlowGuard；不把技术 ALLOW 当作授权 |
+| 仓库、分支、范围、候选、写安全 | GitGuard 与受保护 Git 平台 |
+| 通用契约、规则求值、确定性证据 | GuardEngine；不解析 Git 领域策略、不发放操作许可、不执行合并 |
 
-## 2. 领域组件与数据流
+输入：可信需求基线和范围契约、任务/Worktree 身份、解析后的 Git 对象、明确来源和观察时间的目标快照、其他守卫的候选绑定证据。输出：实际 ChangeSet、范围/分支检查、带覆盖说明的冲突观察、MergeCandidate、协议事实/报告引用、可审计的操作回执。跨守卫载体见[集成契约](integration-contract.md)，领域详情不任意塞入现有协议。
+
+## 2. 组件与数据流（目标）
 
 ~~~text
-FlowGuard approved task + Spec/Arch contracts
-                       │
-                       ▼
-        Change Scope / Task Binding Registry
-                       │
-                       ▼
-             Git Repository Observer
-    HEAD / index / worktree / diff / refs / target
-                       │
-           ┌───────────┼──────────┐
-           ▼           ▼          ▼
-     Branch Policy   Scope      Conflict
-     & Baseline      Rules      Analyzer
-                       │
-                       ▼
-              Candidate Builder
-       final merge tree (base + task changes)
-                       │
-                       ▼
-           GitGuard Facts + Evidence
-                       │
-                   GuardEngine
-                       │
-                 FlowGuard Gate
-                       │
-            Trusted Git Executor
-      atomic expected-ref check / protected merge
+受保护基线/范围 + FlowGuard task binding
+                    ↓
+       Task / Requirement Binding Registry
+                    ↓
+       Repository Observer（真实对象、路径、refs）
+                    ↓
+    Branch Policy / Scope Scanner / Conflict Analyzer
+                    ↓
+       Candidate Builder（受控临时对象库/工作区）
+                    ↓
+        Immutable Candidate + Domain Observations
+                    ↓
+    Facts Adapter → GuardEngine → Evidence Registry
+                    ↓
+      FlowGuard Gate + Authenticated Grant Verifier
+                    ↓
+    Trusted Git Executor → Protected Host / Atomic CAS
+                    ↓
+        Durable Receipt / Read-only Reconciliation
 ~~~
 
-### 2.1 Branch Policy & Worktree
+只读观察与候选构造分开：构造提交/树可能写临时对象，不能对用户索引、工作目录或 refs 产生隐藏写入。写执行器与分析器分进程/身份，分析器默认无远端写权限。运行候选测试属于独立沙箱，不能继承执行器密钥。
 
-显式声明任务分支来源、命名、所有权、状态机和 Worktree 关联。检查 commit/push 的动作对象必须基于真实仓库根，不得误取命令调用者的 cwd；禁止自动 force-push、reset、删除分支或悄悄修改 Git 用户配置。Worktree 仅用于并行目录分离，不能代替权限隔离或共享凭据控制。
+### 2.1 仓库、分支与 Worktree
 
-### 2.2 Change Scope
+仓库身份来自可信注册映射，URL 字符串不足以唯一认证仓库。区分 common Git dir、实际 worktree 路径、worktreeId、taskId 和任务分支；通过 Git 解析仓库边界，不根据调用者 cwd 猜测对象。支持 SHA-1/SHA-256 身份标记，不假定所有 OID 长度固定。Worktree 共享对象库、refs、部分配置和凭据，并不提供安全隔离。
 
-任务契约定义 allowedPaths/forbiddenPaths/allowedModules/approvedContracts，以及创建、删除、重命名、文件模式和子模块变更的允许范围。比较的是**实际 diff**，不能相信 Agent 自报“只改了业务目录”；变更强制规则、GitHub Actions、验收文件时必须执行保护策略或独立评审。
+每个任务拥有独立索引/工作目录/输出命名空间；一个需求可以有多个任务，一个候选可以关联多个需求，必须显式记录映射。复用目录不复用 worktreeId；任务取消、worktree 删除不得删共享 refs 或另一任务对象。生命周期更新需租约/版本条件；共享 ref 写入仍由原子前置条件保护，锁本身不是授权。
 
-### 2.3 Semantic Conflict (advisory)
+### 2.2 范围与并行语义冲突
 
-关联多个任务的 changedFiles、changedSymbols、consumedPublicApis、read/write sets、schema/migration、公开事件/配置契约。即使文件不重合，共享 API 提供者和消费者也可能不兼容。代码图谱不完整时标注 UNKNOWN，不宣布“无冲突”；方法归属/领域设计最终由 ArchGuard 负责，真正的合并仍须编译和 TestGuard 回归。
+范围契约定义允许/禁止路径、模块及受保护公共契约；扫描实际 diff 的新增、修改、删除、重命名两端、文件模式、符号链接和子模块 OID。默认重命名不是逃逸手段，子模块指针检查不等于分析其内容，缺少所需对象则不能宣称完整。策略文件、CI、验收基线和授权配置需要受保护规则及独立审批。
 
-### 2.4 Final Merge Candidate
+跨任务观察共享符号、API provider/consumer、读写集合、Schema/migration、事件与配置契约。不同文件也可构成风险；同一文件也不必然语义冲突。索引版本、分析范围和 unknown 必须保留。语义图谱默认用于建议/评审，不能代替 ArchGuard、编译或 TestGuard；被声明为必需的分析缺失时阻断相应门禁。
 
-最终合并候选必须记录 baseCommit、targetRef+targetOid、headCommit、mergeTreeOid、contractSnapshotDigest、verificationRun、operationId。目标 main 改变即使此前本地验证绿也必须失效；针对最新目标重新构造合入候选执行检查。执行合并必须采用目标 ref 期望值 CAS/merge queue 等平台机制，防止 TOCTOU。不能用 PR HEAD 的 PASS 代表最终合并候选 PASS。
+### 2.3 不可变候选与并发证据
 
-## 3. 状态与策略
+候选核心绑定为 `repoId/taskId/worktreeId/requirementIds/candidateOid/baseOid/mergeGroupId`，语义以共享草案为准；还需领域侧记录 source head、target ref/expected OID、merge tree、Git 算法、构造方法和范围/基线摘要。`candidateOid` 必须指向实际检查的 Git 候选提交；tree 相等不代表提交及父关系相等。若尚只有 tree preview，则不得登记为可合入候选。
 
-建议状态：REQUESTED → BASELINE_LOCKED → WORKTREE_ALLOCATED → CHANGES_OBSERVED → CANDIDATE_READY → VERIFIED → MERGE_ELIGIBLE → MERGED；另有 BLOCKED、CONFLICT、STALE、UNKNOWN 和 RECOVERY_REQUIRED。GitGuard 专注 Git 生命周期及操作约束，FlowGuard 管理整体研发阶段；任何 Git 状态推进都不能自动审批产品/技术要求。
+需求基线绑定不可变 digest/ref 与外部认证批准记录，不能以 `accepted: true` 或 Markdown 文字充当审批。结果键覆盖候选绑定、基线/规则版本、分析器/覆盖和输入摘要；运行有独立 runId。结果采用追加存储；“最新结果”索引只能以版本条件更新。旧任务、旧 base 或晚到的取消运行均不能覆盖新候选结果。并行任务合并形成的新候选必须重新检查，不能拼接各分支的 ALLOW。
 
-统一执行状态、规则结果、覆盖与权限：ENFORCE 针对禁止文件/分支/强制目标版本；REVIEW 针对冲突风险；ADVISE 提供习惯建议。错误的 Git CLI 执行或未知推送结果必须进入对账，不可盲目重放。
+## 3. 合并队列与强制边界
 
-## 4. 既有生态关系
+1. 从可信平台事件取得队列组、实际 base 和 candidate；事件先认证，再读取/核实对象，不能直接信任 PR 提交的 JSON。
+2. 绑定组成员及候选，执行所有必需检查，并核对报告输入摘要、分析器及覆盖。仅 PR HEAD 的绿灯不满足队列候选检查。
+3. 目标推进、组成员重排、候选重建、基线/规则/分析器/覆盖变化均使相关结果失效；审批撤回/到期至少撤销授权可用性，门禁重评，不能沿用过期许可。
+4. FlowGuard 满足生命周期门禁后，由可信控制面签发窄范围 grant。执行器再次核对 grant、候选、目标 OID、审批、证据与当前保护策略。
+5. 平台以精确候选准入/merge queue 或等价原子 expected-ref 条件完成写入；“查询目标后再普通写入”不能防 TOCTOU。若平台重建不同提交，必须重验或使用能保证相同候选的机制。
+6. 持久化执行回执。超时或断连先对账，不把错误解释成未发生写入。
 
-现有 [gitflow-plugin](https://github.com/full-stack-plugins/gitflow-plugin) 已有 Git 规则、Python 标准库实现、独立 `.gitflow/` 配置及显式 apply。GitGuard 不重新实现后直接宣称替代它。首期将其作为固定版本的 legacy provider/adapter，并以合法/违规/unknown/恢复测试做差分验证；迁移完成后才切换唯一规则所有权。既有 CodeGuard/codeguard-plugin 的 commit/push 反馈只作为局部证据，不能自签最终 MERGE_ELIGIBLE。
+本地 Hook 只提供反馈；保护分支、独立 required checks、受限身份和实际绕过测试才证明强制实施。GitGuard 的 ALLOW 不是合并或发布授权。
 
-## 5. Trust Boundary & ADR
+## 4. 状态机与失效（目标）
 
-- GG-ADR-001：被检查的对象区分 worktree、index、commit 和 final merge candidate，报告不能互相冒用。
-- GG-ADR-002：必须检查目标 ref/OID 漂移，合并操作使用受信身份和原子期望版本条件。
-- GG-ADR-003：冲突图谱先风险预警，未知不得转换成“安全”。
-- GG-ADR-004：复用现有 gitflow-plugin 的规则并保持迁移单一所有权。
-- GG-ADR-005：CLI Hook 仅协作反馈；受保护分支、required checks 和可信 CI 才提供强制边界。
-- GG-ADR-006：未知 Git 写结果先对账而非立即重试；不自动强推或删历史。
-
-## 6. 正反例验收
-
-| 情形 | 预期 |
+| 状态迁移 | 必须满足的条件 |
 |---|---|
-| 允许路径变更、正确来源分支、最终候选验证完整 | 本域条件满足 |
-| Agent 跨目录、删除门禁脚本或改权限策略 | 根据可信规则 BLOCK |
-| 目标 main 在检查后前进 | 旧报告 STALE、重新合并验证 |
-| 两任务改不同文件但共享 API 不兼容 | REVIEW/冲突预警 + 真实编译测试 |
-| 合并后 Git 操作结果不确定 | 查询远端 refs 对账，不重复强推 |
-| 旧 Commit 的证据用于新 merge tree | 证据不匹配，BLOCK |
-| 只存在本地 Hook 但服务器没开保护 | 不能宣称 enforced |
+| REQUESTED → BASELINE_LOCKED | 范围/基线可解析且批准身份、范围有效 |
+| BASELINE_LOCKED → WORKTREE_ALLOCATED | 唯一任务绑定、无已有占用冲突 |
+| WORKTREE_ALLOCATED → CHANGES_OBSERVED | 对象/真实 diff 可读，所需范围明确 |
+| CHANGES_OBSERVED → CANDIDATE_READY | 无未解决文本冲突，产生精确候选 |
+| CANDIDATE_READY → VERIFIED | 必需分析完成，技术判定符合门禁规则 |
+| VERIFIED → MERGE_ELIGIBLE | 可信控制面完成授权与 grant 校验 |
+| MERGE_ELIGIBLE → MERGED | 原子写确认、回执绑定实际落地对象 |
 
-实施所需 API、状态、命令与失败恢复见 [技术方案](technical-design.md)。
+异常分支：规则违规进入 BLOCKED，构造冲突进入 CONFLICT；绑定变化进入 STALE；必需覆盖不足为 INDETERMINATE；写结果未知进入 RECOVERY_REQUIRED。取消状态保留审计，不能抢占或撤回已发生的远端写入。重新运行创建新版本，不能把 STALE 原记录改成 VERIFIED。任务状态、技术 decision、运行 runStatus、执行 receipt 是不同维度。
+
+## 5. 协议、证据与审计
+
+共享现行 `guard.partme.ai/v1alpha1` 仅支持 GuardContract YAML / GuardFacts JSON / GuardReport JSON 和精确 `forbid_relation`，字段严格，规则 enforcement 为 `enforce/review/advise`，decision 为 `ALLOW/BLOCK/REQUIRE_APPROVAL`。事实 partial 导致 `BLOCK/INDETERMINATE`；complete 仅表示分析器声明的范围完成。GitGuard 适配尚不存在；OID CAS、操作授权和语义冲突不能靠现行 YAML 自动获得。
+
+报告未签名，verify 是重算，不构成来源认证。可信控制面还需验证来源、摘要绑定、权限、时效和撤回。计划 `guard.integration/v1alpha1` 独立承载运行状态、调用绑定、摘要引用、分析覆盖、批准引用和诊断，不能给现行 GuardReport 添加字段。失败/取消不伪造 ALLOW，批准不能覆盖工具故障或不完整分析。
+
+审计记录请求者/执行身份、runId/operationId、输入摘要、候选/目标前后 OID、grant 引用、状态变化及回执时间；批准与私钥/访问令牌分离，日志不保存凭据。保留撤销和失败记录，限制读取、保留期与删除权限；外部可认证存储是未来信任边界，日志文件本身不是防篡改证明。
+
+## 6. 安全决策与生态迁移
+
+- GG-ADR-001：worktree/index/commit/final candidate 不可互换；完整结果必须绑定检查对象。
+- GG-ADR-002：不可变绑定和原子目标条件同时防止证据错用与 TOCTOU。
+- GG-ADR-003：图谱 unknown 不转为安全；必需分析缺失不能靠批准放行。
+- GG-ADR-004：独立 gitflow-plugin 仅为未核验兼容目标；固定版本审查后做差分，迁移时保持单一规则所有权。
+- GG-ADR-005：Hook 非强制边界；独立 CI/受保护平台负责准入。
+- GG-ADR-006：未知写结果先对账，不自动 force/reset/删历史。
+- GG-ADR-007：分析与执行分权；grant 来自可信控制面，Agent 不能自签。
+
+不宣称已验证外部插件的 Python 实现、配置格式、apply 或退出码。既有 CodeGuard/其他插件的 commit/push 反馈也仅为需适配的局部证据。可通过版本化 GitFlow、GitHub、GitLab、CodeGraph 适配器扩展，但不得在契约中运行不可信策略脚本或绕过现行协议严格字段。
+
+实施端口、故障矩阵、验收及未决项见[技术方案](technical-design.md)。
