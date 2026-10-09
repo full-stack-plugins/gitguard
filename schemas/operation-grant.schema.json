@@ -1,0 +1,146 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GitGuard untrusted operation grant data",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "api_version",
+    "issuer",
+    "actor",
+    "action",
+    "repo_id",
+    "candidate_oid",
+    "binding_digest",
+    "target",
+    "expected_target_oid",
+    "operation_id",
+    "not_before",
+    "expires_at",
+    "revoked"
+  ],
+  "properties": {
+    "api_version": {
+      "const": "gitguard.operation-grant/v1alpha1"
+    },
+    "issuer": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^(?!\\s*$)[^\\u0000-\\u001f\\u007f-\\u009f]+$"
+    },
+    "actor": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^(?!\\s*$)[^\\u0000-\\u001f\\u007f-\\u009f]+$"
+    },
+    "action": {
+      "enum": [
+        "create_worktree",
+        "create_branch",
+        "push",
+        "merge"
+      ]
+    },
+    "repo_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "pattern": "^(?!\\s*$)[^\\u0000-\\u001f\\u007f-\\u009f]+$"
+    },
+    "candidate_oid": {
+      "type": "string",
+      "pattern": "^([0-9a-f]{40}|[0-9a-f]{64})$"
+    },
+    "binding_digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "target": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "pattern": "^(?!.*\\.\\.)(?!.*(?:^|/)\\.)(?!.*(?:\\.lock|\\.)(?:/|$))[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*$"
+    },
+    "expected_target_oid": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^([0-9a-f]{40}|[0-9a-f]{64})$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "operation_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^(?!\\s*$)[^\\u0000-\\u001f\\u007f-\\u009f]+$"
+    },
+    "not_before": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9223372036854775807
+    },
+    "expires_at": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9223372036854775807
+    },
+    "revoked": {
+      "type": "boolean"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "action": {
+            "enum": [
+              "push",
+              "merge"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "expected_target_oid": {
+            "type": "string",
+            "pattern": "^([0-9a-f]{40}|[0-9a-f]{64})$"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "expected_target_oid": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "action": {
+            "enum": [
+              "create_branch",
+              "push",
+              "merge"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "target": {
+            "pattern": "^refs/heads/[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*$"
+          }
+        }
+      }
+    }
+  ],
+  "$comment": "Wire shape only, no authentication or executor capability. Runtime additionally enforces 16KiB serialized UTF-8 bytes, field UTF-8 byte bounds, explicit nullable presence/duplicate keys, matching OID lengths, not_before < expires_at, controller maximum lifetime, exact full candidate binding and protected actor/action/target/expected-target/operation/issuer, fresh authority and monotone protected clock. Refs/index/remote target are not mutated or CAS-admitted by this validator."
+}

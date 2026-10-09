@@ -1,0 +1,15 @@
+{
+  "api_version": "gitguard.operation-grant/v1alpha1",
+  "issuer": "fixture-only",
+  "actor": "fixture-actor",
+  "action": "merge",
+  "repo_id": "fixture-repo",
+  "candidate_oid": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "binding_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "target": "refs/heads/main",
+  "expected_target_oid": "cccccccccccccccccccccccccccccccccccccccc",
+  "operation_id": "fixture-op",
+  "not_before": 10,
+  "expires_at": 60,
+  "revoked": false
+}
