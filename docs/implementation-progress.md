@@ -150,3 +150,7 @@ Final full suite68/68, runner-security8/8 and strict all-target Clippy pass. Flo
 pass against the new runner. TestGuard has no direct GG dependency; new ArchGuard
 candidate-source integration still awaits its separate read_commit_files API slice.
 Task1.2 is not self-accepted; existing14/28 and capability documentation remain.
+
+## Independently reviewed bounded Git runner: 15/28
+
+Task1.2 is accepted for the explicit Linux x86_64 / trusted `/usr/bin/git` / stable source profile in52f07b08065f2594181102c71866649ee3864cad. Independent review repeated68tests plus3mechanism probes and1real packed/corrupted-object probe; syscall denial, process reaping, pipe budgets and unchanged source state passed. SIGSYS remains ProcessPolicyDenied, never a merge conflict. The reviewer could not exercise a functional compat-int80 environment and makes no compatibility-ABI or aarch64 runtime claim. See cloud ledger `gitguard-runner-independent-review.md`. Subsequent additive commit-tree readerc33b28a is separately pending review.
