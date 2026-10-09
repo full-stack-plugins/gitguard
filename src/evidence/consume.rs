@@ -47,6 +47,12 @@ pub fn consume(
     now: i64,
     cause: Option<&str>,
 ) -> Result<Consumption, String> {
+    super::freshness::admit_policy(policy)?;
+    super::freshness::admit_cause(cause)?;
+    super::freshness::admit(bundle, integration::MAX_ARTIFACT_BYTES)?;
+    if now < 0 {
+        return Err("invalid controller time".into());
+    }
     if bundle.api_version != CHECK_VERSION {
         return Err("unsupported bundle version".into());
     }
@@ -160,6 +166,7 @@ pub fn consume_bound(
     provider: &dyn AuthorityProvider,
     context: ConsumptionContext<'_>,
 ) -> Result<Consumption, String> {
+    super::freshness::admit_policy(policy)?;
     if context.key.candidate_digest != candidate.binding_digest()
         || context.key.policy_digest != policy.content_digest()
     {
