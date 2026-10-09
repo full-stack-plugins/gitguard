@@ -7,7 +7,7 @@ use crate::{
 };
 use std::{
     fs::{File, OpenOptions},
-    io::Read,
+    io::{Read, Write},
     os::{
         fd::AsRawFd,
         unix::fs::{MetadataExt, OpenOptionsExt},
@@ -267,7 +267,9 @@ impl ProtectedBareTarget {
         }
         verify_integrity(&self.path(), repository.git_version(), Limits::default())
             .map_err(|_| PlatformError::Unavailable)?;
-        if self.git(&["cat-file", "-t", expected.candidate_oid()])? != b"commit\n" {
+        if expected.request().action != GrantAction::Push
+            && self.git(&["cat-file", "-t", expected.candidate_oid()])? != b"commit\n"
+        {
             return Err(PlatformError::Binding);
         }
         let req = expected.request();
@@ -296,14 +298,145 @@ impl ProtectedBareTarget {
             return Err(PlatformError::Binding);
         }
         if matches!(req.action, GrantAction::Merge | GrantAction::Push) {
-            self.git(&[
+            let args = [
                 "merge-base",
                 "--is-ancestor",
                 req.expected_target_oid
                     .as_deref()
                     .ok_or(PlatformError::Binding)?,
                 expected.candidate_oid(),
-            ])?;
+            ];
+            if req.action == GrantAction::Push {
+                repository.run(&args).map_err(|_| PlatformError::Binding)?;
+            } else {
+                self.git(&args)?;
+            }
+        }
+        Ok(())
+    }
+    /// Transfer only the frozen candidate's reachable objects. No network/helper is enabled.
+    /// Called only after a durable attempt claim; failures leave the attempt uncertain.
+    pub(crate) fn transfer_candidate(
+        &self,
+        repository: &Repository,
+        expected: &GrantExpectation,
+    ) -> Result<(), PlatformError> {
+        self.unchanged()?;
+        self.scan()?;
+        let staging = tempfile::tempdir().map_err(|_| PlatformError::Unavailable)?;
+        run(
+            staging.path(),
+            &[
+                "init",
+                "--bare",
+                "--quiet",
+                &format!("--object-format={}", self.format),
+            ],
+            Limits::default(),
+        )
+        .map_err(|_| PlatformError::Unavailable)?;
+        crate::git::repository::copy_objects(
+            &repository.store.path().join("objects"),
+            &staging.path().join("objects"),
+            &mut (64 * 1024 * 1024),
+            &mut 0,
+        )
+        .map_err(|_| PlatformError::Budget)?;
+        run(
+            staging.path(),
+            &[
+                "update-ref",
+                "refs/heads/candidate",
+                expected.candidate_oid(),
+            ],
+            Limits::default(),
+        )
+        .map_err(|_| PlatformError::Binding)?;
+        // Output is bounded by the unchanged runner (8 MiB). No arbitrary source refs are packed.
+        let pack = run(
+            staging.path(),
+            &[
+                "pack-objects",
+                "--all",
+                "--stdout",
+                "--threads=1",
+                "--window=0",
+                "--depth=0",
+            ],
+            Limits::default(),
+        )
+        .map_err(|_| PlatformError::Budget)?;
+        let pack_file = staging.path().join("transfer.pack");
+        std::fs::write(&pack_file, &pack).map_err(|_| PlatformError::Unavailable)?;
+        let oid = run(
+            staging.path(),
+            &[
+                "index-pack",
+                "--strict",
+                "--threads=1",
+                pack_file.to_str().ok_or(PlatformError::Unsupported)?,
+            ],
+            Limits::default(),
+        )
+        .map_err(|_| PlatformError::Binding)?;
+        let oid = std::str::from_utf8(&oid)
+            .map_err(|_| PlatformError::Binding)?
+            .trim();
+        if oid.len() != expected.candidate_oid().len()
+            || !oid
+                .bytes()
+                .all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
+        {
+            return Err(PlatformError::Binding);
+        }
+        self.unchanged()?;
+        self.scan()?;
+        let destination = self.path().join("objects/pack");
+        for (extension, source) in [
+            ("pack", pack_file),
+            ("idx", staging.path().join("transfer.idx")),
+        ] {
+            let file = File::open(source).map_err(|_| PlatformError::Unavailable)?;
+            if file
+                .metadata()
+                .map_err(|_| PlatformError::Unavailable)?
+                .len()
+                > 8 * 1024 * 1024
+            {
+                return Err(PlatformError::Budget);
+            }
+            let mut bytes = Vec::new();
+            file.take(8 * 1024 * 1024 + 1)
+                .read_to_end(&mut bytes)
+                .map_err(|_| PlatformError::Unavailable)?;
+            if bytes.len() > 8 * 1024 * 1024 {
+                return Err(PlatformError::Budget);
+            }
+            let final_path = destination.join(format!("pack-{oid}.{extension}"));
+            let mut temporary = tempfile::NamedTempFile::new_in(&destination)
+                .map_err(|_| PlatformError::Unavailable)?;
+            temporary
+                .write_all(&bytes)
+                .map_err(|_| PlatformError::Unavailable)?;
+            temporary
+                .as_file()
+                .sync_all()
+                .map_err(|_| PlatformError::Unavailable)?;
+            if let Err(error) = temporary.persist_noclobber(&final_path)
+                && (error.error.kind() != std::io::ErrorKind::AlreadyExists
+                    || std::fs::read(&final_path).map_err(|_| PlatformError::Unavailable)? != bytes)
+            {
+                return Err(PlatformError::UnsafeTarget);
+            }
+        }
+        File::open(destination)
+            .and_then(|f| f.sync_all())
+            .map_err(|_| PlatformError::Unavailable)?;
+        self.scan()?;
+        verify_integrity(&self.path(), repository.git_version(), Limits::default())
+            .map_err(|_| PlatformError::Binding)?;
+        if self.git(&["cat-file", "-t", expected.candidate_oid()])? != b"commit\n" {
+            return Err(PlatformError::Binding);
         }
         Ok(())
     }

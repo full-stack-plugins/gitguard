@@ -107,6 +107,18 @@ fn apply_inner(
         if context.cancel.load(Ordering::SeqCst) {
             return Err(ApplyError::Cancelled);
         }
+        if expected.request().action == GrantAction::Push {
+            target
+                .transfer_candidate(context.repository, expected)
+                .map_err(|_| ApplyError::Target)?;
+            context
+                .session
+                .validate(context.grant_reference, context.authority, context.clock)
+                .map_err(|_| ApplyError::Authority)?;
+            if context.cancel.load(Ordering::SeqCst) {
+                return Err(ApplyError::Cancelled);
+            }
+        }
         target
             .compare_and_swap(expected)
             .map_err(|_| ApplyError::Target)?;

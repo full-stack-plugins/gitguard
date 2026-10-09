@@ -21,7 +21,12 @@ fn small(path: &Path) -> Result<Vec<u8>> {
     }
     Ok(fs::read(path)?)
 }
-fn copy_objects(from: &Path, to: &Path, left: &mut u64, count: &mut usize) -> Result<()> {
+pub(crate) fn copy_objects(
+    from: &Path,
+    to: &Path,
+    left: &mut u64,
+    count: &mut usize,
+) -> Result<()> {
     fs::create_dir_all(to)?;
     for e in fs::read_dir(from)? {
         let e = e?;
