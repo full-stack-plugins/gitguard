@@ -10,6 +10,7 @@ pub struct Repository {
     pub(crate) gitdir: PathBuf,
     pub(crate) store: tempfile::TempDir,
     format: String,
+    git_version: String,
     pub(crate) repo_id: String,
     pub(crate) limits: Limits,
 }
@@ -48,6 +49,50 @@ fn copy_objects(from: &Path, to: &Path, left: &mut u64, count: &mut usize) -> Re
     }
     Ok(())
 }
+fn repository_format(config: &[u8]) -> Result<String> {
+    let mut version = None;
+    let mut format = None;
+    for record in config.split(|b| *b == 0).filter(|r| !r.is_empty()) {
+        let (key, value) = match record.iter().position(|b| *b == b'\n') {
+            Some(i) => (&record[..i], &record[i + 1..]),
+            None => (record, &b""[..]),
+        };
+        let key = std::str::from_utf8(key).map_err(|_| Diagnostic::InvalidRepository)?;
+        match key {
+            "core.repositoryformatversion" => {
+                if version.is_some() {
+                    return Err(Diagnostic::UnsupportedFormat);
+                }
+                version = Some(match value {
+                    b"0" => 0,
+                    b"1" => 1,
+                    _ => return Err(Diagnostic::UnsupportedFormat),
+                });
+            }
+            "extensions.objectformat" => {
+                if format.is_some() {
+                    return Err(Diagnostic::UnsupportedFormat);
+                }
+                format = Some(match value {
+                    b"sha1" => "sha1",
+                    b"sha256" => "sha256",
+                    _ => return Err(Diagnostic::UnsupportedFormat),
+                });
+            }
+            "core.worktree" => return Err(Diagnostic::UnsafeStorage),
+            "core.bare" if value != b"false" => return Err(Diagnostic::InvalidRepository),
+            _ if key.starts_with("extensions.") => return Err(Diagnostic::UnsupportedFormat),
+            _ if key == "include.path" || key.starts_with("includeif.") => {
+                return Err(Diagnostic::UnsafeStorage);
+            }
+            _ => {}
+        }
+    }
+    if format.is_some() && version != Some(1) {
+        return Err(Diagnostic::UnsupportedFormat);
+    }
+    Ok(format.unwrap_or("sha1").into())
+}
 impl Repository {
     pub fn discover(root: &Path, repo_id: &str) -> Result<Self> {
         Self::discover_with_limits(root, repo_id, Limits::default())
@@ -85,17 +130,33 @@ impl Repository {
             gitdir.clone()
         };
         let config = small(&common.join("config"))?;
-        let config = std::str::from_utf8(&config).map_err(|_| Diagnostic::InvalidRepository)?;
-        let mut format = "sha1".to_string();
-        for line in config.lines() {
-            if let Some((key, value)) = line.split_once('=')
-                && key.trim().eq_ignore_ascii_case("objectformat")
-            {
-                format = value.trim().to_ascii_lowercase();
-            }
-        }
-        if format != "sha1" && format != "sha256" {
-            return Err(Diagnostic::UnsupportedFormat);
+        let store = tempfile::tempdir()?;
+        let frozen_config = store.path().join("source-config");
+        fs::write(&frozen_config, &config)?;
+        // Parse a frozen explicit file; never load source metadata as Git's own config.
+        // Native parsing supplies section, quoting, escaping and comment semantics.
+        let config_values = run(
+            store.path(),
+            &[
+                "config",
+                "--file",
+                frozen_config
+                    .to_str()
+                    .ok_or(Diagnostic::InvalidRepository)?,
+                "--no-includes",
+                "--null",
+                "--list",
+            ],
+            limits,
+        )?;
+        let format = repository_format(&config_values)?;
+        fs::remove_file(frozen_config)?;
+        let git_version = String::from_utf8(run(store.path(), &["version"], limits)?)
+            .map_err(|_| Diagnostic::GitFailed)?
+            .trim()
+            .to_owned();
+        if !git_version.starts_with("git version ") || git_version.len() > 128 {
+            return Err(Diagnostic::GitFailed);
         }
         let objects = common.join("objects");
         if fs::symlink_metadata(&objects)?.file_type().is_symlink() {
@@ -106,7 +167,6 @@ impl Repository {
                 return Err(Diagnostic::UnsafeStorage);
             }
         }
-        let store = tempfile::tempdir()?;
         run(
             store.path(),
             &[
@@ -135,15 +195,24 @@ impl Repository {
             gitdir,
             store,
             format,
+            git_version,
             repo_id: repo_id.into(),
             limits,
         })
+    }
+    /// Caller-assigned local label; remote URLs never authenticate this identity.
+    pub fn repo_id(&self) -> &str {
+        &self.repo_id
     }
     pub fn root(&self) -> &Path {
         &self.root
     }
     pub fn common_dir(&self) -> &Path {
         &self.common
+    }
+    /// Observed pinned executable version, not repository identity or authentication.
+    pub fn git_version(&self) -> &str {
+        &self.git_version
     }
     pub fn object_format(&self) -> &str {
         &self.format

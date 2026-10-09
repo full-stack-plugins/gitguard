@@ -2,67 +2,44 @@
 
 [English](README.md) · [简体中文](README.zh-CN.md)
 
-**Git policy, change scope, concurrent-task analysis, exact merge candidates and safe Git operations for AI-native engineering.**
+**Read-only Git candidate observation, frozen change scope and candidate-bound evidence.**
 
-> **Documentation-only project.** At inspected main commit `e03b5fd06d8b3d81d4bbbd11ff0fb70bea00d485` (2026-10-09), this repository contains these two READMEs and two design documents. There is no CLI, MCP server, executable, manifest, test suite, schema or OpenSpec directory. All components, commands and delivery milestones below are proposals. The independent [gitflow-plugin](https://github.com/full-stack-plugins/gitflow-plugin) is an **unverified compatibility target**; its implementation and behavior were not inspected here.
+This implementation branch contains a Rust library, a `gitguard check` CLI, schemas and real Git tests. It is no longer documentation-only. **13/28 OpenSpec tasks are independently accepted for their documented local profiles**; newer work remains pending review. See [implementation progress](docs/implementation-progress.md) and [tasks](openspec/changes/add-candidate-bound-git-governance/tasks.md) for precise acceptance boundaries.
 
-## Problem and approach
+## Implemented local capabilities
 
-Two agents can edit different files and still break the same API. A local hook can pass before the target branch advances. GitGuard is designed to bind approved change scope, actual Git objects, isolated task observations and verification to the **exact candidate that the protected merge mechanism will admit**.
+- Real SHA-1/SHA-256 objects, linked worktree common directories, commit/tree/index/worktree distinction, full immutable OIDs and byte-safe path scope, including both rename endpoints.
+- Private temporary two-parent merge previews, exact candidate/base/group/member bindings and isolated task/worktree leases. Dirty sources and missing submodule/graph coverage remain explicit uncertainty.
+- Actual GuardEngine projection, bounded evaluation and artifact verification. `gitguard check` reads one strict JSON request on stdin and writes the current bundle to stdout: 0 ALLOW, 2 BLOCK, 3 REQUIRE_APPROVAL, 4 failure. There is no `--report` or mutable-ref convenience command.
+- Explicit trust-provider ports, full-key-bound consumption and process-local append-only history/CAS. A separate restricted Linux local-file backend provides tested restart and multiprocess behavior; its review status is recorded separately. Neither store turns historical eligibility into current authority.
 
-~~~text
-Approved requirement baseline + task scope + observed target OID
-                               ↓
-            Branch / Worktree / actual Diff checks
-                               ↓
-             Concurrent-task semantic impact warnings
-                               ↓
-        Immutable candidate / merge-queue group binding
-                               ↓
-               Domain facts → GuardEngine evidence
-                               ↓
-      FlowGuard gate + authenticated operation grant
-                               ↓
-          Trusted executor + protected atomic admission
-~~~
+The semantic graph and authority implementations under tests are labelled fixtures. **No production authority provider, approved non-null baseline, protected hosted admission, MCP server, remote push/merge or operation-intent executor exists.** Every writer operation remains denied, including feature-enabled builds. ALLOW is a technical result, not merge permission. Approval cannot repair partial/error evidence or rewrite REQUIRE_APPROVAL.
 
-## Boundaries and scenarios
+Observation currently requires controlled local checkouts; hostile concurrent filesystem replacement and full OS resource containment are not proven. Repository labels are assigned by the caller, never authenticated from origin URLs. [Observation limits](docs/git-observation-adr.md), [history limits](docs/local-evidence-store-adr.md) and [Linux persistence limits](docs/durable-history-adr.md) are part of the supported contract.
 
-GitGuard owns repository/commit identity, branch and worktree policy, actual change scope, candidate freshness and Git write safety. SpecGuard owns requirement approval meaning; ArchGuard owns architecture, CodeGuard code policy, TestGuard test evidence and FlowGuard lifecycle authorization. GuardEngine supplies neutral contract validation, rule evaluation and deterministic evidence computation; it does not approve or merge changes. The six guards are independent.
+## Build and run
 
-- **Parallel requirements:** isolate each task/worktree run; shared files, APIs or schemas produce conflict observations. A late run must never overwrite evidence for a newer candidate.
-- **Merge queues:** check the actual queue candidate against its base and group identity. PR HEAD evidence cannot authorize a different merge candidate; target/group changes invalidate affected results.
-- **Controlled writes:** previews are read-only; a separately authorized executor verifies a narrow, expiring grant and the expected target OID. Unknown write outcomes require remote reconciliation before retry.
+Development uses a sibling `../guardengine` source checkout and Cargo.lock; this is not an independently published package. Rust 1.90 is the declared floor. The verified toolchain/Git matrix is recorded in the observation ADR.
 
-Inputs are trusted task/scope and baseline references, local Git objects and explicit target snapshots. Outputs are proposed domain observations, immutable candidate references, protocol-compatible evidence and separate operation receipts. `ALLOW` is a scoped technical decision, not merge/release permission. Approval cannot make incomplete analysis or a tool failure acceptable.
+```sh
+cargo test --locked
+cargo run --locked -- check < request.json
+```
 
-Worktrees isolate directories, **not security privileges**. Protected branches, independent required checks and trusted executor identities must enforce admission. Contracts and CI policy must come from protected sources, not the candidate being checked.
+Construct `request.json` according to the [actual CLI contract](docs/git-engine-cli-contract.md), using real immutable candidate/base OIDs and a scope policy digest derived from `FrozenPolicy`. [CLI tests](tests/cli_outcomes.rs) construct real requests. There are no `scope check`, `conflict analyze` or `merge apply` commands.
 
-## Protocol and delivery status
+For a complete real-object producer fixture and exact artifact bytes:
 
-The shared current protocol is `guard.partme.ai/v1alpha1`: GuardContract YAML, GuardFacts JSON and GuardReport JSON with exact `forbid_relation`, strict fields, and `enforce`/`review`/`advise`. It has no Git candidate or authorization fields. GitGuard has no adapter yet. Verification is recomputation of unsigned evidence, not proof of identity or authorization.
+```sh
+cargo run --locked --example export_evidence -- /absolute/path/to/new-golden-directory
+```
 
-The planned [integration contract](docs/integration-contract.md) keeps task/requirement/worktree/candidate bindings outside the existing wire format. The draft `guard.integration/v1alpha1` envelope is not parsed by the current engine. Future check commands target exits 0 `ALLOW`, 2 `BLOCK`, 3 `REQUIRE_APPROVAL`, 4 input/runtime/verification error; GitGuard currently implements none of them. Partial facts must yield `BLOCK` with `INDETERMINATE`, not a passing result.
+This creates a disposable repository, runs the actual producer and exports contract/facts/report/envelope/domain, the complete bundle and the source Git bundle. It does not authenticate the fixture as production evidence.
 
-## Documentation
+## Protocol and remaining work
 
-- [Architecture, boundaries, concurrency and trust decisions](docs/architecture.md)
-- [Technical design, contracts, recovery and measurable milestones](docs/technical-design.md)
-- [Shared integration contract (draft)](docs/integration-contract.md)
-- [GuardEngine protocol](https://github.com/full-stack-plugins/guardengine/blob/main/docs/protocol.md)
+Native `guard.partme.ai/v1alpha1` remains unchanged: strict GuardContract/GuardFacts/GuardReport and exact `forbid_relation`. Actual integration uses the separate `guard.integration/v1alpha1` envelope and eligibility ports; candidate bindings remain in GitGuard's `gitguard.candidate/v1alpha2` domain. Hash/recomputation verification does not prove issuer identity.
 
-## Proposed CLI — not runnable
+The official gitflow-plugin was inspected and exercised read-only at a pinned commit: [compatibility survey](adapters/gitflow/compatibility.md). Its exit semantics differ from GitGuard. No opt-in adapter or replacement claim is enabled; native interfaces are unchanged.
 
-~~~sh
-# Design examples only; no gitguard binary exists.
-gitguard scope check --task TASK-104 --base main --head HEAD
-gitguard conflict analyze --task TASK-104
-gitguard merge preview --target main --head HEAD
-~~~
-
-Mutable ref arguments are convenience inputs only: the future implementation must resolve them once to immutable OIDs and record the resolution. Initial delivery will establish read-only observation and exact candidate fixtures, then evaluate legacy compatibility with pinned provider versions and differential tests. No force-push, destructive reset, branch deletion, hidden fetch or policy-script execution belongs in a read-only check.
-
-
-## OpenSpec implementation backlog
-
-The incremental [proposal](openspec/changes/add-candidate-bound-git-governance/proposal.md), [design](openspec/changes/add-candidate-bound-git-governance/design.md), [requirements](openspec/changes/add-candidate-bound-git-governance/specs/) and [tasks](openspec/changes/add-candidate-bound-git-governance/tasks.md) translate the architecture into pending implementation work. See the [cross-repository dependency roadmap](openspec/guard-roadmap.md) and [structural validation record](openspec/validation-2026-10-09.md). Every new implementation task remains unchecked; this branch adds planning artifacts, not product features. Earlier source-tree inventories and validation limitations describe the inspected baseline or earlier architecture-review stage; this planning stage adds OpenSpec artifacts and separately records actual CLI validation. Existing change ownership and historical completion evidence remain intact.
+Remaining work includes protected baseline provenance, production provider integration, further process/filesystem hardening, full Gitflow differential adaptation, versioned MCP/API, hosted protections and separately reviewed write authorization/recovery. [Architecture](docs/architecture.md) and [technical design](docs/technical-design.md) describe this broader target; their future capabilities are not current product claims. [Integration contract](docs/integration-contract.md) and [dependency roadmap](openspec/guard-roadmap.md) explain shared boundaries.

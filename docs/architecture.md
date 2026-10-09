@@ -1,6 +1,6 @@
 # GitGuard — Git 与变更治理架构
 
-> 目标架构，尚未实现。证据基线：2026-10-09 检查 main `e03b5fd06d8b3d81d4bbbd11ff0fb70bea00d485` 的完整 tracked tree，仅有 `README.md`、`README.zh-CN.md`、`docs/architecture.md`、`docs/technical-design.md`。没有源码、测试、配置、构建清单、OpenSpec 或可执行门禁；文档不代表通过实现验证。
+> 本文描述完整目标架构；历史main e03b5fd在2026-10-09确为纯文档。当前实现分支已有受限本地Rust库、check CLI、真实Git/GE产物及history/CAS，13/28任务已按本地profile独立验收；准确事实见[实施进度](implementation-progress.md)。托管强制门禁、生产provider和可用写执行器尚未实现，目标架构不等于当前生产能力。
 
 ## 1. 定位、输入输出与权责
 
