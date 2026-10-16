@@ -1,0 +1,4 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {"gitguard":{"type":"stdio","command":"gitguard","args":["serve","--mcp"]}}
+}

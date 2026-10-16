@@ -1,10 +1,12 @@
 # GitGuard — Git 守卫
 
+已实现专业检查：`policy check --action branch|merge|commit` 与 MCP `gitguard_policy_check`，复用已激活 GitFlow 策略，全程只读。见[插件使用、可信边界与验证](plugin/README.md)。`allow` 仅表示策略允许，技术质量与审批授权仍未评估。
+
 [English](README.md) · [简体中文](README.zh-CN.md)
 
 GitGuard 面向 **AI 多智能体并行研发**，管控分支、Worktree、任务变更范围、候选代码、语义冲突、合入基线和受保护分支的安全性。
 
-> **当前状态：架构与技术方案文档已完成；新的 GitGuard CLI、MCP 和服务端强制门禁尚未实现。** 已有能力继续保留在 [gitflow-plugin](https://github.com/full-stack-plugins/gitflow-plugin)，后续经差分验证再迁移。
+> **当前状态：源码已提供可构建的智能体接入 CLI 和只读 MCP。** 可通过显式可信适配器读取 GitFlow 生效规则；Git 写操作与服务端强制门禁尚未实现。
 
 ## 最重要的工程问题
 
@@ -45,3 +47,22 @@ gitguard merge preview --target main --head HEAD
 ~~~
 
 首次开发先复用现有 GitFlow 规则和兼容配置，建立精确 Git 候选及越权变更负例；随后完成真实 CI、受保护分支和并行语义冲突验证。不会因为“代码没有文本冲突”就断言合并安全。
+
+## 智能体安装与提示注入
+
+已接入共享安装器：`install`、`uninstall`、`context`、`instructions render|sync`、`doctor --integration`、`serve --mcp`。支持 Codex、Claude Code 和 Gemini CLI；按本工具职责生成独立标记区块。
+
+```sh
+cargo build --locked
+gitguard install --agents codex,claude,gemini --project /absolute/project --bin-dir /absolute/bin --dry-run
+gitguard context --project /absolute/project
+```
+
+构建后请先通过 `target/debug/工具名`（Windows 加 `.exe`）调用；上面的短命令假定程序已加入 PATH。指定 `--bin-dir` 会复制当前二进制，安装器不自动修改 PATH；去掉 `--dry-run` 才实际安装。需要同级 `../guardengine/crates/guard-install` 源码。
+
+动态规则需显式 `--gitflow-root <可信插件路径> --python <已有Python可执行文件>`；CLI 查询与同步需重复参数，MCP 配置固定参数。候选漂移返回 unverified，未提供适配器返回 unconfigured。
+
+[统一设计、宿主文件映射、更新、卸载和验证说明](https://github.com/full-stack-plugins/guardengine/blob/main/docs/agent-installation.md)。安装成功不代表宿主已加载或专业检查通过。
+
+
+只读策略/上下文查询在 Windows/POSIX 都先检查有效 Git `filter.*.clean` 与 `filter.*.process` 配置。存在非空有效命令（含继承的 Git LFS）时，直接返回 `unverified` / `executable_filter_unverified`，不启动 filter，不删除配置，也不伪造干净状态。此保守限制需通过隔离环境或另行授权的工作流处理。Windows 清理仓库/配置路由环境变量，同时保留原生 `GIT_AUTHOR_*` / `GIT_COMMITTER_*` 身份变量；两平台均禁用可选索引刷新写入。这是本地配置检查，不是对并发修改仓库/配置的安全沙箱。

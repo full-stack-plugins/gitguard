@@ -1,0 +1,40 @@
+name: Guard agent installation
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  integration:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: gitguard
+      - uses: actions/checkout@v4
+        with:
+          repository: full-stack-plugins/guardengine
+          path: guardengine
+      - uses: actions/checkout@v4
+        with:
+          repository: full-stack-plugins/gitflow-plugin
+          path: gitflow-plugin
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build actual CLI
+        working-directory: gitguard
+        run: cargo build --locked 
+      - name: Exercise installation and MCP in isolated fixtures
+        working-directory: gitguard
+        run: python -B ../guardengine/scripts/verify_guard_installation.py --bin-dir target/debug --tools gitguard --gitflow-root ../gitflow-plugin
+      - name: Exercise read-only active GitFlow policy CLI and MCP
+        working-directory: gitguard
+        run: python -B tests/policy_check.py
+      - name: Verify portable package and stdio discovery
+        working-directory: gitguard
+        run: python -B ../guardengine/scripts/verify_guard_packages.py --repositories-root .. --bin-dir target/debug --tools gitguard

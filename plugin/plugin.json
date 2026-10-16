@@ -1,0 +1,7 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "gitguard",
+  "version": "0.1.0",
+  "description": "Read-only checks of activated GitFlow branch, merge and commit policies; no Git writes or quality approval",
+  "license": "Apache-2.0"
+}
