@@ -20,8 +20,8 @@ jobs:
           path: guardengine
       - uses: actions/checkout@v4
         with:
-          repository: full-stack-plugins/gitflow-plugin
-          path: gitflow-plugin
+          repository: full-stack-plugins/gitguard-plugin
+          path: gitguard-plugin
       - uses: dtolnay/rust-toolchain@stable
       - uses: actions/setup-python@v5
         with:
@@ -31,7 +31,7 @@ jobs:
         run: cargo build --locked 
       - name: Exercise installation and MCP in isolated fixtures
         working-directory: gitguard
-        run: python -B ../guardengine/scripts/verify_guard_installation.py --bin-dir target/debug --tools gitguard --gitflow-root ../gitflow-plugin
+        run: python -B ../guardengine/scripts/verify_guard_installation.py --bin-dir target/debug --tools gitguard --gitflow-root ../gitguard-plugin
       - name: Exercise read-only active GitFlow policy CLI and MCP
         working-directory: gitguard
         run: python -B tests/policy_check.py

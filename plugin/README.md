@@ -36,6 +36,6 @@ stdout 是 JSON。`decision` 为 `allow`、`deny` 或 `unverified`；退出码�
 
 `tests/policy_check.py` 创建隔离的临时 Git 仓库和测试激活快照，检查负例→修正请求→复验、CLI/MCP 全 JSON 相等、保护分支、未知引用、缺失适配器、策略漂移和检查前后工作树状态。仅测试夹具写入自己的临时仓库。
 
-Windows 本地开发将 `CARGO_HOME`、`CARGO_TARGET_DIR`、`TEMP`、`TMP` 设到 E 盘，构建后设置 `GITGUARD_BIN` 为二进制绝对路径，运行 `python -B tests/policy_check.py`。测试要求已有可信的兄弟 `gitflow-plugin` 检出；不安装依赖或激活真实目标仓库。
+Windows 本地开发将 `CARGO_HOME`、`CARGO_TARGET_DIR`、`TEMP`、`TMP` 设到 E 盘，构建后设置 `GITGUARD_BIN` 为二进制绝对路径，运行 `python -B tests/policy_check.py`。测试默认使用可信的兄弟 `gitguard-plugin` 检出，可用 `GITGUARD_ADAPTER_ROOT` 显式指定固定受信源码目录；不安装依赖或激活真实目标仓库。
 
 Portable package: root plugin.json and mcp.json register the already-built gitguard executable from PATH; skills/ contains the package-local usage skill. The package does not bundle or install the executable. Structure and stdio discovery are checked by guardengine/scripts/verify_guard_packages.py; actual host loading remains unverified.

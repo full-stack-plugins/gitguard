@@ -8,7 +8,8 @@ import tempfile
 import unittest
 
 BIN = Path(os.environ.get('GITGUARD_BIN', 'target/debug/gitguard' + ('.exe' if os.name == 'nt' else ''))).resolve()
-ADAPTER = Path(__file__).resolve().parents[2] / 'gitflow-plugin'
+ADAPTER = Path(os.environ.get('GITGUARD_ADAPTER_ROOT',
+                              str(Path(__file__).resolve().parents[2] / 'gitguard-plugin'))).resolve()
 
 
 class PolicyCheck(unittest.TestCase):
