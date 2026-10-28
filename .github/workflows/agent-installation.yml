@@ -7,9 +7,11 @@ permissions:
 jobs:
   integration:
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest, macos-14]
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:
@@ -22,12 +24,14 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: full-stack-plugins/gitguard-plugin
-          ref: db85b6ea1634835e9eed2d2203738785d6aa608e
+          ref: 89e7c8d2df97ccf9791fdc80a62272eab61d3096
           path: gitguard-plugin
       - uses: dtolnay/rust-toolchain@stable
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Verify actual runner architecture
+        run: python -c "import platform; system=platform.system(); machine=platform.machine().lower(); print(system, machine); assert (system == 'Darwin' and machine == 'arm64') or (system in ('Windows', 'Linux') and machine in ('amd64', 'x86_64'))"
       - name: Build actual CLI
         working-directory: gitguard
         run: cargo build --locked 
