@@ -32,15 +32,23 @@ jobs:
           python-version: '3.12'
       - name: Verify actual runner architecture
         run: python -c "import platform; system=platform.system(); machine=platform.machine().lower(); print(system, machine); assert (system == 'Darwin' and machine == 'arm64') or (system in ('Windows', 'Linux') and machine in ('amd64', 'x86_64'))"
+      - name: Use a canonical isolated fixture base
+        shell: python
+        run: |
+          import os, pathlib, tempfile
+          base = pathlib.Path(tempfile.gettempdir()).resolve()
+          with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as output:
+              output.write("TMPDIR=" + str(base) + "\n")
+          print("Fixture base:", base)
       - name: Build actual CLI
         working-directory: gitguard
         run: cargo build --locked 
       - name: Exercise installation and MCP in isolated fixtures
         working-directory: gitguard
-        run: python -B ../guardengine/scripts/verify_guard_installation.py --bin-dir target/debug --tools gitguard --gitflow-root ../gitguard-plugin
+        run: python -B ../gitguard-plugin/scripts/candidate_test.py installation python -B ../guardengine/scripts/verify_guard_installation.py --bin-dir target/debug --tools gitguard --gitflow-root ../gitguard-plugin
       - name: Exercise read-only active GitFlow policy CLI and MCP
         working-directory: gitguard
-        run: python -B tests/policy_check.py
+        run: python -B ../gitguard-plugin/scripts/candidate_test.py policy python -B tests/policy_check.py
       - name: Verify portable package and stdio discovery
         working-directory: gitguard
-        run: python -B ../guardengine/scripts/verify_guard_packages.py --repositories-root .. --bin-dir target/debug --tools gitguard
+        run: python -B ../gitguard-plugin/scripts/candidate_test.py packages python -B ../guardengine/scripts/verify_guard_packages.py --repositories-root .. --bin-dir target/debug --tools gitguard
