@@ -39,3 +39,7 @@ stdout 是 JSON。`decision` 为 `allow`、`deny` 或 `unverified`；退出码�
 Windows 本地开发将 `CARGO_HOME`、`CARGO_TARGET_DIR`、`TEMP`、`TMP` 设到 E 盘，构建后设置 `GITGUARD_BIN` 为二进制绝对路径，运行 `python -B tests/policy_check.py`。测试默认使用可信的兄弟 `gitguard-plugin` 检出，可用 `GITGUARD_ADAPTER_ROOT` 显式指定固定受信源码目录；不安装依赖或激活真实目标仓库。
 
 Portable package: root plugin.json and mcp.json register the already-built gitguard executable from PATH; skills/ contains the package-local usage skill. The package does not bundle or install the executable. Structure and stdio discovery are checked by guardengine/scripts/verify_guard_packages.py; actual host loading remains unverified.
+
+## 当前集成测试依赖
+
+CI 固定 GuardEngine `fe36a46b1711d84d21e6bea75358bb6b55c579ce` 与 GitGuard 插件 `db85b6ea1634835e9eed2d2203738785d6aa608e`，不使用浮动 main 冒充修复组合。插件提交须先推送使该引用可获取，再运行引擎集成 CI。此固定引用是测试输入，不是发版声明。Windows 插件通用 Git 执行仍未验证；本引擎已有独立受限只读适配器，测试不得用旧插件回退掩盖该组合的失败。
