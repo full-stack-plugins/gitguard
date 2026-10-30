@@ -13,7 +13,6 @@ jobs:
       matrix:
         git: [minimum, system]
     env:
-      COMPAT_GIT: ${{ matrix.git == 'minimum' && format('{0}/git-minimum/install/bin/git', runner.temp) || 'system' }}
       CARGO_INCREMENTAL: "0"
       CARGO_BUILD_JOBS: "1"
       CARGO_PROFILE_TEST_DEBUG: "0"
@@ -33,6 +32,15 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
+      - name: Select Git executable after runner allocation
+        env:
+          PROFILE: ${{ matrix.git }}
+        run: |
+          if [ "$PROFILE" = minimum ]; then
+            printf 'COMPAT_GIT=%s/git-minimum/install/bin/git\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+          else
+            printf 'COMPAT_GIT=system\n' >> "$GITHUB_ENV"
+          fi
       - name: Build verified minimum Git in disposable private prefix
         if: matrix.git == 'minimum'
         run: bash ../../scripts/ci-git-minimum.sh build "$RUNNER_TEMP/git-minimum"
