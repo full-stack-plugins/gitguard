@@ -34,11 +34,11 @@ class PolicyCheck(unittest.TestCase):
         return subprocess.check_output(['git', '-C', str(self.repo), *args], stderr=subprocess.PIPE)
 
     def activate(self):
-        import hashlib
-        digest = hashlib.sha256(json.dumps(self.policy, ensure_ascii=False, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
-        state = self.repo / '.gitflow/state'
-        state.mkdir(parents=True, exist_ok=True)
-        (state / 'activation.json').write_text(json.dumps({'schema_version': '1.0.0', 'mode': 'local', 'policy': self.policy, 'sha256': digest}))
+        # Candidate adapter fixtures use its actual XML encoder. JSON files below
+        # are deliberately adversarial migration leftovers, never active policy.
+        sys.path.insert(0,str(ADAPTER/'scripts'))
+        from gitflow.xml_policy import encode
+        (self.repo/'.git/gitflow.xml').write_bytes(encode(self.policy))
 
     def request(self, **kwargs):
         request = dict(project=str(self.repo), gitflow_root=str(ADAPTER), python=sys.executable)
@@ -77,19 +77,44 @@ class PolicyCheck(unittest.TestCase):
                 self.assertEqual(cli['quality_decision'], 'not_evaluated')
         self.assertEqual(before, self.git('status', '--porcelain'))
 
-    def test_missing_activation_and_drift_never_allow(self):
-        (self.repo / '.gitflow/state/activation.json').unlink()
-        self.assertEqual(self.cli(self.request(action='branch', branch='feature/task'))['decision'], 'unverified')
+    def test_xml_only_missing_corrupt_and_changed_rules(self):
+        import hashlib
+        state=self.repo/'.gitflow/state';state.mkdir(parents=True)
+        digest=hashlib.sha256(json.dumps(self.policy,ensure_ascii=False,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+        (state/'activation.json').write_text(json.dumps({'schema_version':'1.0.0','mode':'local','policy':self.policy,'sha256':digest}))
+        (self.repo/'.gitflow/workflow.json').write_text(json.dumps(self.policy))
+        xml=self.repo/'.git/gitflow.xml';xml.unlink()
+        result=self.cli(self.request(action='branch',branch='feature/task'))
+        self.assertEqual(result['decision'],'unverified')
+        self.assertEqual(result['code'],'policy_missing')
+        xml.write_text('<!DOCTYPE policy><policy/>')
+        self.assertEqual(self.cli(self.request(action='branch',branch='feature/task'))['decision'],'unverified')
+        self.policy['roles']['feature']['pattern']='feature/other'
         self.activate()
-        active = self.repo / '.gitflow/state/activation.json'
-        data = json.loads(active.read_text())
-        data['mode'] = 'shared'
-        active.write_text(json.dumps(data))
-        candidate = dict(self.policy, revision=2)
-        (self.repo / '.gitflow/workflow.json').write_text(json.dumps(candidate))
-        result = self.cli(self.request(action='branch', branch='feature/task'))
-        self.assertEqual(result['decision'], 'unverified')
-        self.assertEqual(result['code'], 'policy_drift')
+        self.assertEqual(self.cli(self.request(action='branch',branch='feature/task'))['decision'],'deny')
+        self.assertEqual(self.cli(self.request(action='branch',branch='feature/other'))['decision'],'allow')
+
+    def test_context_reads_all_eight_xml_profiles(self):
+        profiles=list((ADAPTER/'profiles').glob('*.json'))
+        self.assertEqual(len(profiles),8)
+        for file in profiles:
+            with self.subTest(profile=file.stem):
+                self.policy=json.loads(file.read_text());self.activate()
+                result=subprocess.run([str(BIN),'context','--project',str(self.repo),'--gitflow-root',str(ADAPTER),'--python',sys.executable],capture_output=True,text=True,timeout=20)
+                self.assertEqual(result.returncode,0,result.stderr)
+                domain=json.loads(result.stdout)['domain']
+                self.assertEqual(domain['status'],'active')
+                self.assertEqual(domain['roles'],self.policy['roles'])
+                self.assertEqual(domain['profile'],file.stem)
+
+    def test_linked_worktree_uses_common_xml_and_current_branch(self):
+        linked=self.repo/'linked-worktree'
+        self.git('worktree','add','-b','feature/linked',str(linked),'main')
+        request=self.request(action='commit',message='feat: linked',project=str(linked))
+        self.assertEqual(self.cli(request)['decision'],'allow')
+        request['message']='bad'
+        self.assertEqual(self.cli(request)['decision'],'deny')
+        self.assertFalse((linked/'gitflow.xml').exists())
 
     def test_protected_branch_unknown_source_and_input_bounds(self):
         self.git('checkout', 'main')
