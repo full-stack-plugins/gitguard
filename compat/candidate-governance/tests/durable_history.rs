@@ -7,6 +7,7 @@ use gitguard::evidence::{
     freshness::ReuseKey,
 };
 use guardengine::{Enforcement, integration::attempt_store::Target};
+use std::os::unix::fs::PermissionsExt;
 #[test]
 fn real_consumption_resumes_after_restart_but_changed_full_key_cannot_relabel() {
     let e = evidence(Enforcement::Advise, false, false);
@@ -39,6 +40,7 @@ fn real_consumption_resumes_after_restart_but_changed_full_key_cannot_relabel() 
     .unwrap();
     let plain = consume(&e.repo, &e.candidate, &e.bundle, &p, &authority, NOW, None).unwrap();
     let dir = tempfile::Builder::new()
+        .permissions(std::fs::Permissions::from_mode(0o700))
         .prefix(".gg-durable-test-")
         .tempdir_in(env!("CARGO_MANIFEST_DIR"))
         .unwrap();
@@ -63,6 +65,7 @@ fn real_consumption_resumes_after_restart_but_changed_full_key_cannot_relabel() 
     assert!(store.current(&target).unwrap().unwrap().eligible);
     assert_eq!(store.history(&target).unwrap().len(), 1);
     let other_dir = tempfile::Builder::new()
+        .permissions(std::fs::Permissions::from_mode(0o700))
         .prefix(".gg-durable-test-")
         .tempdir_in(env!("CARGO_MANIFEST_DIR"))
         .unwrap();

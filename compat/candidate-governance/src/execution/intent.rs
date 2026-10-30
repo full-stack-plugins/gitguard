@@ -546,6 +546,7 @@ mod tests {
     };
     fn root() -> tempfile::TempDir {
         tempfile::Builder::new()
+            .permissions(std::fs::Permissions::from_mode(0o700))
             .prefix(".intent-unit-")
             .tempdir_in(env!("CARGO_MANIFEST_DIR"))
             .unwrap()

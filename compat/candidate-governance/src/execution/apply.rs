@@ -651,11 +651,17 @@ mod tests {
     }
     #[test]
     fn reftable_receipt_profile_requires_explicit_exact_backend_configuration() {
-        let bare = tempfile::tempdir_in(env!("CARGO_MANIFEST_DIR")).unwrap();
+        let bare = tempfile::Builder::new()
+            .permissions(std::fs::Permissions::from_mode(0o700))
+            .tempdir_in(env!("CARGO_MANIFEST_DIR"))
+            .unwrap();
         git(bare.path(), &["init", "--bare", "-q"]);
         assert!(ProtectedBareTarget::open(bare.path(), "repo").is_ok());
         assert!(ProtectedBareTarget::open_reftable_receipts(bare.path(), "repo").is_err());
-        let table = tempfile::tempdir_in(env!("CARGO_MANIFEST_DIR")).unwrap();
+        let table = tempfile::Builder::new()
+            .permissions(std::fs::Permissions::from_mode(0o700))
+            .tempdir_in(env!("CARGO_MANIFEST_DIR"))
+            .unwrap();
         git(
             table.path(),
             &["init", "--bare", "--ref-format=reftable", "-q"],

@@ -2,7 +2,7 @@ mod common;
 use common::evidence::*;
 use gitguard::execution::{grant::*, intent::*};
 use guardengine::Enforcement;
-use std::collections::BTreeSet;
+use std::{collections::BTreeSet, os::unix::fs::PermissionsExt};
 fn expected(e: &Evidence, actor: &str) -> GrantExpectation {
     GrantExpectation::freeze(
         &e.repo,
@@ -29,6 +29,7 @@ fn durable_request_replay_conflict_and_claim_never_authorize_git() {
     let before = e.source.state();
     let expected = expected(&e, "actor");
     let root = tempfile::Builder::new()
+        .permissions(std::fs::Permissions::from_mode(0o700))
         .prefix(".intent-")
         .tempdir_in(env!("CARGO_MANIFEST_DIR"))
         .unwrap();

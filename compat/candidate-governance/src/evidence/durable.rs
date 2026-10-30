@@ -485,6 +485,7 @@ mod tests {
     #[test]
     fn restart_preserves_history_and_newer_generation_defeats_late_allow() {
         let dir = tempfile::Builder::new()
+            .permissions(std::fs::Permissions::from_mode(0o700))
             .prefix(".gg-durable-test-")
             .tempdir_in(env!("CARGO_MANIFEST_DIR"))
             .unwrap();
@@ -509,6 +510,7 @@ mod tests {
     #[test]
     fn invalid_storage_never_resets_or_follows_symlinks() {
         let dir = tempfile::Builder::new()
+            .permissions(std::fs::Permissions::from_mode(0o700))
             .prefix(".gg-durable-test-")
             .tempdir_in(env!("CARGO_MANIFEST_DIR"))
             .unwrap();
@@ -571,6 +573,7 @@ mod tests {
     #[test]
     fn independent_processes_have_exactly_one_cas_winner() {
         let dir = tempfile::Builder::new()
+            .permissions(std::fs::Permissions::from_mode(0o700))
             .prefix(".gg-durable-test-")
             .tempdir_in(env!("CARGO_MANIFEST_DIR"))
             .unwrap();
@@ -630,6 +633,7 @@ mod tests {
     fn process_crash_around_atomic_replace_preserves_whole_old_or_new_state() {
         for (point, exit, expected) in [("before-rename", 71, 0), ("after-rename", 72, 1)] {
             let dir = tempfile::Builder::new()
+                .permissions(std::fs::Permissions::from_mode(0o700))
                 .prefix(".gg-durable-test-")
                 .tempdir_in(env!("CARGO_MANIFEST_DIR"))
                 .unwrap();
@@ -652,6 +656,7 @@ mod tests {
     #[test]
     fn checksums_and_native_transition_replay_reject_corrupt_or_invented_history() {
         let dir = tempfile::Builder::new()
+            .permissions(std::fs::Permissions::from_mode(0o700))
             .prefix(".gg-durable-test-")
             .tempdir_in(env!("CARGO_MANIFEST_DIR"))
             .unwrap();

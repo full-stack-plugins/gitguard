@@ -41,8 +41,14 @@ jobs:
       - name: Check preserved safety targets
         run: cargo clippy --locked --features privileged-execution --lib --test runner_security --test atomic_admission --test executor_disabled --example local_bare_apply -- -D warnings
       - name: Full default compatibility tests (writer remains disabled)
-        run: cargo test --locked
+        run: |
+          umask 022
+          cargo test --locked
       - name: Full explicitly enabled execution tests in disposable fixtures
-        run: cargo test --locked --features privileged-execution
+        run: |
+          umask 022
+          cargo test --locked --features privileged-execution
       - name: Exercise only self-created isolated bare repositories
-        run: cargo run --locked --features privileged-execution --example local_bare_apply
+        run: |
+          umask 022
+          cargo run --locked --features privileged-execution --example local_bare_apply
