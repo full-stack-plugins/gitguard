@@ -154,12 +154,23 @@ impl Repository {
         Ok(m)
     }
     fn index_manifest(&self) -> Result<Manifest> {
+        self.index_manifest_with_observer(|| {})
+    }
+    fn index_manifest_with_observer(&self, after_copy: impl FnOnce()) -> Result<Manifest> {
+        // All observations share this Repository's private scratch index. Keep
+        // copy, Git read and manifest parsing together; a poisoned observation
+        // cannot establish cleanliness and must never be silently recovered.
+        let _scratch = self
+            .scratch_index
+            .lock()
+            .map_err(|_| Diagnostic::UnsafeStorage)?;
         let p = self.gitdir.join("index");
         let meta = fs::symlink_metadata(&p)?;
         if !meta.is_file() || meta.len() > self.limits.storage_bytes {
             return Err(Diagnostic::UnsafeStorage);
         }
         fs::copy(p, self.store.path().join("index"))?;
+        after_copy();
         self.object_manifest(&self.run(&["ls-files", "--stage", "-z"])?, true)
     }
     pub fn resolve_subject(&self, request: SubjectRequest) -> Result<FrozenSubject> {
@@ -202,5 +213,187 @@ impl Repository {
             return Err(Diagnostic::DirtySubject);
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod scratch_index_tests {
+    use super::*;
+    use std::process::Command;
+    use std::sync::{
+        atomic::{AtomicBool, Ordering},
+        mpsc,
+    };
+    use std::time::Duration;
+
+    fn git(root: &Path, args: &[&str]) -> String {
+        let out = Command::new("/usr/bin/git")
+            .arg("-C")
+            .arg(root)
+            .args([
+                "-c",
+                "user.name=Fixture",
+                "-c",
+                "user.email=fixture@example.invalid",
+            ])
+            .args(args)
+            .env_clear()
+            .env("PATH", "/usr/bin:/bin")
+            .env("HOME", root)
+            .env("GIT_CONFIG_NOSYSTEM", "1")
+            .env("GIT_CONFIG_GLOBAL", "/dev/null")
+            .env("GIT_OPTIONAL_LOCKS", "0")
+            .output()
+            .unwrap();
+        assert!(
+            out.status.success(),
+            "{}",
+            String::from_utf8_lossy(&out.stderr)
+        );
+        String::from_utf8(out.stdout).unwrap().trim().to_owned()
+    }
+    fn fixture() -> (tempfile::TempDir, Repository, String) {
+        let directory = tempfile::tempdir().unwrap();
+        git(directory.path(), &["init", "-q", "-b", "main"]);
+        fs::write(directory.path().join("a"), "fixed tracked bytes\n").unwrap();
+        git(directory.path(), &["add", "a"]);
+        git(directory.path(), &["commit", "-qm", "seed"]);
+        let head = git(directory.path(), &["rev-parse", "HEAD"]);
+        let repository = Repository::discover(directory.path(), "repo").unwrap();
+        (directory, repository, head)
+    }
+    fn source_bytes(root: &Path) -> (Vec<u8>, Vec<u8>) {
+        (
+            fs::read(root.join(".git/index")).unwrap(),
+            fs::read(root.join("a")).unwrap(),
+        )
+    }
+
+    #[test]
+    fn copied_scratch_index_is_exclusive_until_observation_finishes() {
+        let (directory, repository, _) = fixture();
+        let before = source_bytes(directory.path());
+        let (copied_tx, copied_rx) = mpsc::channel();
+        let (attempt_tx, attempt_rx) = mpsc::channel();
+        let (second_copy_tx, second_copy_rx) = mpsc::channel();
+        let overlap = AtomicBool::new(false);
+        let (first, second) = std::thread::scope(|scope| {
+            let repository_ref = &repository;
+            let overlap_ref = &overlap;
+            let first = scope.spawn(move || {
+                repository_ref.index_manifest_with_observer(|| {
+                    copied_tx.send(()).unwrap();
+                    if attempt_rx.recv_timeout(Duration::from_secs(2)).is_ok() {
+                        overlap_ref.store(
+                            second_copy_rx
+                                .recv_timeout(Duration::from_millis(200))
+                                .is_ok(),
+                            Ordering::SeqCst,
+                        );
+                    }
+                })
+            });
+            let first_ready = copied_rx.recv_timeout(Duration::from_secs(2));
+            let repository_ref = &repository;
+            let second = scope.spawn(move || {
+                attempt_tx.send(()).unwrap();
+                repository_ref.index_manifest_with_observer(|| {
+                    let _ = second_copy_tx.send(());
+                })
+            });
+            // Join/release both workers before asserting the scheduling evidence.
+            let joined = (first.join(), second.join());
+            (first_ready, joined)
+        });
+        assert!(
+            first.is_ok(),
+            "first observation did not reach its copy checkpoint"
+        );
+        let (first, second) = second;
+        let first = first.unwrap().unwrap();
+        let second = second.unwrap().unwrap();
+        assert!(
+            !overlap.load(Ordering::SeqCst),
+            "second observation overwrote shared scratch index before the first read completed"
+        );
+        assert_eq!(first, second);
+        assert_eq!(source_bytes(directory.path()), before);
+    }
+
+    #[test]
+    fn poisoned_scratch_index_fails_closed_without_writing_source() {
+        let (directory, repository, _) = fixture();
+        let before = source_bytes(directory.path());
+        let panic = std::thread::scope(|scope| {
+            scope
+                .spawn(|| {
+                    let _guard = repository.scratch_index.lock().unwrap();
+                    panic!("fixture interrupted while scratch observation was owned");
+                })
+                .join()
+        });
+        assert!(panic.is_err());
+        assert!(matches!(
+            repository.resolve_subject(SubjectRequest::Index),
+            Err(Diagnostic::UnsafeStorage)
+        ));
+        assert_eq!(source_bytes(directory.path()), before);
+    }
+
+    #[test]
+    fn real_concurrent_candidate_validation_has_no_false_binding_or_source_writes() {
+        use crate::{candidate::CandidateRequest, scope::TaskScope};
+        let (directory, repository, head) = fixture();
+        let before = source_bytes(directory.path());
+        let subject = repository
+            .resolve_subject(SubjectRequest::Commit(head.clone()))
+            .unwrap();
+        let scope = TaskScope::advisory(
+            "task",
+            vec!["R".into()],
+            vec![b"a".to_vec()],
+            &"a".repeat(64),
+            None,
+        )
+        .unwrap();
+        let candidate = repository
+            .prepare_candidate(
+                &subject,
+                &scope,
+                &CandidateRequest {
+                    worktree_id: "worktree".into(),
+                    base_oid: head.clone(),
+                    merge_group_id: None,
+                    members: vec![],
+                },
+            )
+            .unwrap();
+        let failures = std::thread::scope(|scope| {
+            (0..8)
+                .map(|worker| {
+                    let candidate = &candidate;
+                    let repository = &repository;
+                    scope.spawn(move || {
+                        (0..32)
+                            .filter_map(|iteration| {
+                                candidate
+                                    .validate(repository)
+                                    .err()
+                                    .map(|error| (worker, iteration, error))
+                            })
+                            .collect::<Vec<_>>()
+                    })
+                })
+                .collect::<Vec<_>>()
+                .into_iter()
+                .flat_map(|worker| worker.join().unwrap())
+                .collect::<Vec<_>>()
+        });
+        assert!(
+            failures.is_empty(),
+            "stable source produced false validation failures: {failures:?}"
+        );
+        assert_eq!(source_bytes(directory.path()), before);
+        assert_eq!(git(directory.path(), &["rev-parse", "HEAD"]), head);
     }
 }

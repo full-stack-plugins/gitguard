@@ -3,12 +3,14 @@ use crate::{Diagnostic, Result};
 use std::{
     fs,
     path::{Path, PathBuf},
+    sync::Mutex,
 };
 pub struct Repository {
     root: PathBuf,
     common: PathBuf,
     pub(crate) gitdir: PathBuf,
     pub(crate) store: tempfile::TempDir,
+    pub(crate) scratch_index: Mutex<()>,
     format: String,
     git_version: String,
     pub(crate) repo_id: String,
@@ -191,6 +193,7 @@ impl Repository {
         // Check actual object hashes, not merely claimed filenames/types.
         verify_integrity(store.path(), &git_version, limits)?;
         Ok(Self {
+            scratch_index: Mutex::new(()),
             root,
             common,
             gitdir,
