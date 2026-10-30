@@ -32,6 +32,6 @@ Windows 使用 .exe。仅在有意安装到目标项目时去掉 --dry-run。插
 
 ## 保留旧候选治理实现
 
-旧 roadmap 分支完整保留在 [compat/candidate-governance](compat/candidate-governance/COMPATIBILITY.md)，含源码、CLI、测试、夹具、文档和示例。它是独立构建的 Linux 兼容目标，保留原固定 GuardEngine API 依赖和 Rust 1.90 下限，不参与默认三平台运行时安装或调用。历史 JSON 观测适配器不是当前策略权威；特权执行仍默认关闭，旧测试由独立工作流显式执行。
+旧 roadmap 分支完整保留在 [compat/candidate-governance](compat/candidate-governance/COMPATIBILITY.md)，含源码、CLI、测试、夹具、文档和示例。它是独立构建的 Linux 兼容目标，保留原固定 GuardEngine API 依赖和 Rust 1.90 下限，不参与默认三平台运行时安装或调用。历史 JSON 观测适配器不是当前策略权威；特权执行仍默认关闭，旧测试由独立工作流显式执行。可选的本地 reftable 回执能力要求 Git 2.47.3 及以上，并通过独立私有仓库的实际能力探测；新版及稳定发行版构建不受精确版本锁限制。该可选下限不限制默认运行时或普通 files 后端行为。
 
 见[分支整合说明](docs/branch-integration.md)、[安装职责合同](docs/xml-installation-fixture.md)、[配套验证](docs/xml-adapter-verification.md)及[插件信任边界](plugin/README.md)。

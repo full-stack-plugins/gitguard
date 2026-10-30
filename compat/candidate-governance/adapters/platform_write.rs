@@ -10,7 +10,7 @@ use std::{
     io::{Read, Write},
     os::{
         fd::AsRawFd,
-        unix::fs::{MetadataExt, OpenOptionsExt},
+        unix::fs::{MetadataExt, OpenOptionsExt, PermissionsExt},
     },
     path::{Path, PathBuf},
     time::{Duration, Instant},
@@ -34,11 +34,204 @@ pub struct ProtectedBareTarget {
     identity: String,
     receipt_profile: bool,
 }
+// The floor is our previously validated baseline, not a claim about the first
+// upstream reftable release. No upper-version allowlist substitutes for probing.
+fn require_receipt_capabilities(
+    version: &[u8],
+    probe: impl FnOnce() -> Result<(), PlatformError>,
+) -> Result<(), PlatformError> {
+    let parse = || {
+        let text = std::str::from_utf8(version).ok()?;
+        let text = text.strip_prefix("git version ")?.strip_suffix('\n')?;
+        let mut components = text.split('.');
+        let mut part = || {
+            let value = components.next()?;
+            if value.is_empty() || !value.bytes().all(|b| b.is_ascii_digit()) {
+                return None;
+            }
+            value.parse::<u64>().ok()
+        };
+        let version = (part()?, part()?, part()?);
+        for suffix in components {
+            if suffix.is_empty()
+                || !suffix.bytes().all(|b| b.is_ascii_alphanumeric())
+                || suffix.to_ascii_lowercase().starts_with("rc")
+            {
+                return None;
+            }
+        }
+        Some(version)
+    };
+    if version.len() > 128 || !parse().is_some_and(|v| v >= (2, 47, 3)) {
+        return Err(PlatformError::Unsupported);
+    }
+    probe().map_err(|_| PlatformError::Unsupported)
+}
+
+#[cfg(test)]
+fn restricted_probe_command(
+    path: &Path,
+    args: &[&str],
+    input: Option<&[u8]>,
+) -> Result<Vec<u8>, PlatformError> {
+    probe_command_with_limits(path, args, input, Limits::default())
+}
+
+fn probe_command_with_limits(
+    path: &Path,
+    args: &[&str],
+    input: Option<&[u8]>,
+    limits: Limits,
+) -> Result<Vec<u8>, PlatformError> {
+    match input {
+        Some(bytes) => run_with_input(path, args, bytes, limits),
+        None => run(path, args, limits),
+    }
+    .map_err(|_| PlatformError::Unsupported)
+}
+
+fn probe_reftable_capabilities() -> Result<(), PlatformError> {
+    let deadline = Instant::now() + Limits::default().timeout;
+    probe_reftable_with(|path, args, input| {
+        let timeout = deadline.saturating_duration_since(Instant::now());
+        if timeout.is_zero() {
+            return Err(PlatformError::Unsupported);
+        }
+        probe_command_with_limits(
+            path,
+            args,
+            input,
+            Limits {
+                timeout,
+                ..Limits::default()
+            },
+        )
+    })
+}
+
+/// Probe only our independent disposable repository, never the selected target.
+/// Stable Git plumbing owns the table format; we do not parse binary internals.
+fn probe_reftable_with(
+    mut command: impl FnMut(&Path, &[&str], Option<&[u8]>) -> Result<Vec<u8>, PlatformError>,
+) -> Result<(), PlatformError> {
+    let mut probe = || -> Result<(), PlatformError> {
+        let directory = tempfile::Builder::new()
+            .permissions(std::fs::Permissions::from_mode(0o700))
+            .prefix("gitguard-reftable-capability-")
+            .tempdir()
+            .map_err(|_| PlatformError::Unsupported)?;
+        let path = directory.path();
+        command(
+            path,
+            &[
+                "-c",
+                "user.name=GitGuard capability probe",
+                "-c",
+                "user.email=probe@example.invalid",
+                "init",
+                "--bare",
+                "--quiet",
+                "--object-format=sha1",
+                "--ref-format=reftable",
+                "--template=",
+            ],
+            None,
+        )?;
+        if command(path, &["rev-parse", "--show-object-format"], None)? != b"sha1\n"
+            || command(path, &["rev-parse", "--show-ref-format"], None)? != b"reftable\n"
+        {
+            return Err(PlatformError::Unsupported);
+        }
+        let oid = |raw: Vec<u8>| -> Result<String, PlatformError> {
+            let text = String::from_utf8(raw).map_err(|_| PlatformError::Unsupported)?;
+            let value = text.strip_suffix('\n').ok_or(PlatformError::Unsupported)?;
+            if value.len() != 40
+                || !value
+                    .bytes()
+                    .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+            {
+                return Err(PlatformError::Unsupported);
+            }
+            Ok(value.to_owned())
+        };
+        let before = oid(command(
+            path,
+            &["hash-object", "-w", "--stdin"],
+            Some(b"before\n"),
+        )?)?;
+        let after = oid(command(
+            path,
+            &["hash-object", "-w", "--stdin"],
+            Some(b"after\n"),
+        )?)?;
+        if before == after {
+            return Err(PlatformError::Unsupported);
+        }
+        let attribution = [
+            "-c",
+            "user.name=GitGuard capability probe",
+            "-c",
+            "user.email=probe@example.invalid",
+            "update-ref",
+            "--stdin",
+        ];
+        let setup = format!(
+            "start\noption no-deref\ncreate refs/gitguard/probe-target {before}\nprepare\ncommit\n"
+        );
+        if command(path, &attribution, Some(setup.as_bytes()))?
+            != b"start: ok\nprepare: ok\ncommit: ok\n"
+        {
+            return Err(PlatformError::Unsupported);
+        }
+        let transaction = format!(
+            "start\noption no-deref\nupdate refs/gitguard/probe-target {after} {before}\ncreate refs/gitguard/probe-receipt {after}\nprepare\ncommit\n"
+        );
+        if command(path, &attribution, Some(transaction.as_bytes()))?
+            != b"start: ok\nprepare: ok\ncommit: ok\n"
+        {
+            return Err(PlatformError::Unsupported);
+        }
+        let refs = [
+            "for-each-ref",
+            "--format=%(refname) %(objectname)",
+            "refs/gitguard/",
+        ];
+        let expected =
+            format!("refs/gitguard/probe-receipt {after}\nrefs/gitguard/probe-target {after}\n")
+                .into_bytes();
+        if command(path, &refs, None)? != expected {
+            return Err(PlatformError::Unsupported);
+        }
+        let stale = format!(
+            "start\noption no-deref\nupdate refs/gitguard/probe-target {before} {before}\ncreate refs/gitguard/probe-stale {after}\nprepare\ncommit\n"
+        );
+        if command(path, &attribution, Some(stale.as_bytes())).is_ok()
+            || command(path, &refs, None)? != expected
+        {
+            return Err(PlatformError::Unsupported);
+        }
+        let abort = format!(
+            "start\noption no-deref\nupdate refs/gitguard/probe-target {before} {after}\ncreate refs/gitguard/probe-aborted {before}\nprepare\nabort\n"
+        );
+        if command(path, &attribution, Some(abort.as_bytes()))?
+            != b"start: ok\nprepare: ok\nabort: ok\n"
+            || command(path, &refs, None)? != expected
+        {
+            return Err(PlatformError::Unsupported);
+        }
+        if command(path, &["cat-file", "blob", &after], None)? != b"after\n" {
+            return Err(PlatformError::Unsupported);
+        }
+        Ok(())
+    };
+    probe().map_err(|_| PlatformError::Unsupported)
+}
+
 impl ProtectedBareTarget {
     pub fn open(root: &Path, repo_id: &str) -> Result<Self, PlatformError> {
         Self::open_profile(root, repo_id, false)
     }
-    /// Explicit Linux x86_64 / Git 2.47.3 / SHA-1 reftable receipt profile.
+    /// Explicit Linux x86_64 / Git >=2.47.3 / probed SHA-1 reftable receipt profile.
     /// Caller must select a private controller-owned bare repository; no migration occurs.
     /// Proves process-crash consistency, not power-loss durability or hosted identity.
     pub fn open_reftable_receipts(root: &Path, repo_id: &str) -> Result<Self, PlatformError> {
@@ -83,14 +276,6 @@ impl ProtectedBareTarget {
         let config = target.config()?;
         // Parse explicit frozen bytes in isolated metadata, never load unvalidated target config.
         let temp = tempfile::tempdir().map_err(|_| PlatformError::Unavailable)?;
-        if receipt_profile
-            && (!cfg!(all(target_os = "linux", target_arch = "x86_64"))
-                || run(temp.path(), &["version"], Limits::default())
-                    .map_err(|_| PlatformError::Unsupported)?
-                    != b"git version 2.47.3\n")
-        {
-            return Err(PlatformError::Unsupported);
-        }
         let file = temp.path().join("config-source");
         std::fs::write(&file, &config).map_err(|_| PlatformError::Unavailable)?;
         let values = run(
@@ -157,6 +342,14 @@ impl ProtectedBareTarget {
             }
         }
         .into();
+        if receipt_profile {
+            if !cfg!(all(target_os = "linux", target_arch = "x86_64")) {
+                return Err(PlatformError::Unsupported);
+            }
+            let version = run(temp.path(), &["version"], Limits::default())
+                .map_err(|_| PlatformError::Unsupported)?;
+            require_receipt_capabilities(&version, probe_reftable_capabilities)?;
+        }
         target.config_hash = hash(&config);
         let m = target
             .directory
@@ -625,5 +818,113 @@ impl SplitConfig for [u8] {
         self.iter()
             .position(|b| *b == b'\n')
             .map(|i| (&self[..i], &self[i + 1..]))
+    }
+}
+
+#[cfg(test)]
+mod receipt_capability_tests {
+    use super::*;
+
+    #[test]
+    fn minimum_and_current_versions_need_real_capabilities() {
+        for version in [
+            b"git version 2.47.3\n".as_slice(),
+            b"git version 2.56.0\n",
+            b"git version 3.0.0\n",
+            b"git version 2.56.0.distro1\n",
+            b"git version 2.47.3.ubuntu.1\n",
+        ] {
+            assert!(require_receipt_capabilities(version, || Ok(())).is_ok());
+            assert_eq!(
+                require_receipt_capabilities(version, || Err(PlatformError::Unavailable)),
+                Err(PlatformError::Unsupported)
+            );
+        }
+        for version in [
+            b"git version 2.47.2\n".as_slice(),
+            b"git version 2.46.9\n",
+            b"git version 1.99.0\n",
+            b"git version 2.56\n",
+            b"git version latest\n",
+            b"git version 2.56.0 extra\n",
+            b"git version 2.56.0-rc1\n",
+            b"git version 2.56.0.rc1\n",
+            b"git version 2.56.0..distro\n",
+        ] {
+            assert_eq!(
+                require_receipt_capabilities(version, || panic!(
+                    "below minimum/malformed must not probe"
+                )),
+                Err(PlatformError::Unsupported)
+            );
+        }
+    }
+
+    #[test]
+    fn oversized_version_cannot_trigger_a_probe() {
+        assert_eq!(
+            require_receipt_capabilities(&vec![b'9'; 129], || panic!("unbounded version")),
+            Err(PlatformError::Unsupported)
+        );
+    }
+
+    #[test]
+    fn real_reftable_probe_checks_transactions_without_touching_user_targets() {
+        assert!(probe_reftable_capabilities().is_ok());
+    }
+
+    #[test]
+    fn missing_capability_and_inconsistent_backend_fail_closed() {
+        assert_eq!(
+            probe_reftable_with(|_, _, _| Err(PlatformError::Unavailable)),
+            Err(PlatformError::Unsupported)
+        );
+        assert_eq!(
+            probe_reftable_with(|path, args, input| {
+                if args == ["rev-parse", "--show-ref-format"] {
+                    return Ok(b"files\n".to_vec());
+                }
+                restricted_probe_command(path, args, input)
+            }),
+            Err(PlatformError::Unsupported)
+        );
+        assert_eq!(
+            probe_reftable_with(|path, args, input| {
+                if args.contains(&"update-ref") && input.is_some() {
+                    return Ok(b"success without transaction acknowledgement\n".to_vec());
+                }
+                restricted_probe_command(path, args, input)
+            }),
+            Err(PlatformError::Unsupported)
+        );
+    }
+
+    #[test]
+    fn receipt_profile_keeps_exact_sha1_and_configuration_constraints() {
+        use std::os::unix::fs::PermissionsExt;
+        let root = tempfile::Builder::new()
+            .permissions(std::fs::Permissions::from_mode(0o700))
+            .tempdir()
+            .unwrap();
+        run(
+            root.path(),
+            &[
+                "-c",
+                "user.name=GitGuard capability probe",
+                "-c",
+                "user.email=probe@example.invalid",
+                "init",
+                "--bare",
+                "--quiet",
+                "--ref-format=reftable",
+                "--object-format=sha256",
+            ],
+            Limits::default(),
+        )
+        .unwrap();
+        assert!(matches!(
+            ProtectedBareTarget::open_reftable_receipts(root.path(), "repo"),
+            Err(PlatformError::Unsupported)
+        ));
     }
 }

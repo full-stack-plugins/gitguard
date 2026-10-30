@@ -8,7 +8,12 @@ jobs:
   compatibility:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        git: [minimum, system]
     env:
+      COMPAT_GIT: ${{ matrix.git == 'minimum' && format('{0}/git-minimum/install/bin/git', runner.temp) || 'system' }}
       CARGO_INCREMENTAL: "0"
       CARGO_BUILD_JOBS: "1"
       CARGO_PROFILE_TEST_DEBUG: "0"
@@ -28,7 +33,10 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
-      - name: Verify exact historical API dependency and restricted Git profile
+      - name: Build verified minimum Git in disposable private prefix
+        if: matrix.git == 'minimum'
+        run: bash ../../scripts/ci-git-minimum.sh build "$RUNNER_TEMP/git-minimum"
+      - name: Verify exact historical API dependency and host Git profile
         run: |
           python3 - <<'PY'
           import subprocess
@@ -39,16 +47,16 @@ jobs:
           assert tuple(map(int,version.removeprefix('git version ').split('.')[:2])) >= (2,50), version
           PY
       - name: Check preserved safety targets
-        run: cargo clippy --locked --features privileged-execution --lib --test runner_security --test atomic_admission --test executor_disabled --example local_bare_apply -- -D warnings
+        run: bash ../../scripts/ci-git-minimum.sh run "$COMPAT_GIT" cargo clippy --locked --features privileged-execution --lib --test runner_security --test atomic_admission --test executor_disabled --example local_bare_apply -- -D warnings
       - name: Full default compatibility tests (writer remains disabled)
         run: |
           umask 022
-          cargo test --locked
+          bash ../../scripts/ci-git-minimum.sh run "$COMPAT_GIT" cargo test --locked
       - name: Full explicitly enabled execution tests in disposable fixtures
         run: |
           umask 022
-          cargo test --locked --features privileged-execution
+          bash ../../scripts/ci-git-minimum.sh run "$COMPAT_GIT" cargo test --locked --features privileged-execution
       - name: Exercise only self-created isolated bare repositories
         run: |
           umask 022
-          cargo run --locked --features privileged-execution --example local_bare_apply
+          bash ../../scripts/ci-git-minimum.sh run "$COMPAT_GIT" cargo run --locked --features privileged-execution --example local_bare_apply
