@@ -104,7 +104,9 @@ class PolicyCheck(unittest.TestCase):
                 self.assertEqual(result.returncode,0,result.stderr)
                 domain=json.loads(result.stdout)['domain']
                 self.assertEqual(domain['status'],'active')
-                self.assertEqual(domain['roles'],self.policy['roles'])
+                self.assertNotIn('roles',domain)
+                self.assertEqual(domain['policy_sha256'],__import__('hashlib').sha256(json.dumps(self.policy,ensure_ascii=False,sort_keys=True,separators=(',',':')).encode()).hexdigest())
+                self.assertEqual(domain['policy_location'],'git-common-dir/gitflow.xml')
                 self.assertEqual(domain['profile'],file.stem)
 
     def test_linked_worktree_uses_common_xml_and_current_branch(self):

@@ -2,6 +2,13 @@ name: Guard agent installation
 on:
   push:
   pull_request:
+  workflow_dispatch:
+    inputs:
+      plugin_sha:
+        description: 'Full 40-character commit of the paired XML gitguard-plugin candidate'
+        required: false
+        default: '229f3d22d711c3a08a9b4c2a7e56d50913740fb9'
+        type: string
 permissions:
   contents: read
 jobs:
@@ -12,10 +19,22 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-14]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
+    env:
+      PAIRED_PLUGIN_SHA: ${{ inputs.plugin_sha || '229f3d22d711c3a08a9b4c2a7e56d50913740fb9' }}
     steps:
       - uses: actions/checkout@v4
         with:
           path: gitguard
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Require an immutable paired plugin commit
+        shell: python
+        run: |
+          import os, re
+          value = os.environ['PAIRED_PLUGIN_SHA']
+          if not re.fullmatch(r'[0-9a-f]{40}', value):
+              raise SystemExit('plugin_sha must be a full lowercase commit SHA')
       - uses: actions/checkout@v4
         with:
           repository: full-stack-plugins/guardengine
@@ -24,19 +43,34 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: full-stack-plugins/gitguard-plugin
-          ref: 89e7c8d2df97ccf9791fdc80a62272eab61d3096
+          ref: ${{ env.PAIRED_PLUGIN_SHA }}
           path: gitguard-plugin
+      - name: Verify exact checkout identities
+        shell: python
+        run: |
+          import json, os, subprocess
+          def head(path):
+              return subprocess.check_output(['git', '-C', path, 'rev-parse', 'HEAD'], text=True).strip()
+          actual = {name: head(name) for name in ('gitguard', 'gitguard-plugin', 'guardengine')}
+          if actual['gitguard'] != os.environ['GITHUB_SHA']:
+              raise SystemExit('engine checkout does not match the workflow commit')
+          if actual['gitguard-plugin'] != os.environ['PAIRED_PLUGIN_SHA']:
+              raise SystemExit('paired plugin checkout mismatch')
+          if actual['guardengine'] != 'fe36a46b1711d84d21e6bea75358bb6b55c579ce':
+              raise SystemExit('GuardEngine checkout mismatch')
+          print(json.dumps(actual))
       - uses: dtolnay/rust-toolchain@stable
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
       - name: Verify actual runner architecture
         run: python -c "import platform; system=platform.system(); machine=platform.machine().lower(); print(system, machine); assert (system == 'Darwin' and machine == 'arm64') or (system in ('Windows', 'Linux') and machine in ('amd64', 'x86_64'))"
       - name: Use a canonical isolated fixture base
         shell: python
         run: |
-          import os, pathlib, tempfile
+          import os, pathlib, sys, tempfile
+          sys.path.insert(0, str(pathlib.Path('gitguard-plugin/tests').resolve()))
+          from run_isolated import contaminated_ancestors
           base = pathlib.Path(tempfile.gettempdir()).resolve()
+          if contaminated_ancestors(base):
+              raise SystemExit('Test fixture base contains ancestor Git metadata')
           with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as output:
               output.write("TMPDIR=" + str(base) + "\n")
           print("Fixture base:", base)
@@ -45,10 +79,13 @@ jobs:
         run: cargo build --locked 
       - name: Exercise installation and MCP in isolated fixtures
         working-directory: gitguard
-        run: python -B ../gitguard-plugin/scripts/candidate_test.py installation python -B ../guardengine/scripts/verify_guard_installation.py --bin-dir target/debug --tools gitguard --gitflow-root ../gitguard-plugin
+        run: python -B ../gitguard-plugin/scripts/candidate_test.py installation python -B tests/run_installation_xml.py --bin-dir target/debug --tools gitguard --gitflow-root ../gitguard-plugin
       - name: Exercise read-only active GitFlow policy CLI and MCP
         working-directory: gitguard
         run: python -B ../gitguard-plugin/scripts/candidate_test.py policy python -B tests/policy_check.py
+      - name: Verify install-owned guidance and XML-only init in both orders
+        working-directory: gitguard
+        run: python -B ../gitguard-plugin/scripts/candidate_test.py guidance python -B tests/guidance_coexistence.py -v
       - name: Verify portable package and stdio discovery
         working-directory: gitguard
         run: python -B ../gitguard-plugin/scripts/candidate_test.py packages python -B ../guardengine/scripts/verify_guard_packages.py --repositories-root .. --bin-dir target/debug --tools gitguard

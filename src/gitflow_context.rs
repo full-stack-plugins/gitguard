@@ -14,7 +14,39 @@ pub(crate) fn read(options: &Options) -> Result<Value, String> {
             json!({"status":"unconfigured","reason":"Select an existing trusted GitFlow adapter with --gitflow-root and --python; no workflow is assumed.","quality_decision":"not_evaluated"}),
         );
     };
-    invoke(root, python, &options.project, None)
+    let value = invoke(root, python, &options.project, None)?;
+    Ok(reference_context(value))
+}
+
+/// Export only a versioned reference, never a second policy inside AGENTS.md.
+/// Domain policy checks still use invoke directly with the complete XML policy.
+fn reference_context(value: Value) -> Value {
+    let status = value["status"].as_str().unwrap_or("unverified");
+    if status != "active" {
+        return json!({"status":if status == "unconfigured" { "unconfigured" } else { "unverified" },
+            "code":value["code"], "reason":value["reason"], "quality_decision":"not_evaluated",
+            "reference_schema_version":1, "policy_location":"git-common-dir/gitflow.xml"});
+    }
+    let profile = value["profile"].as_str().unwrap_or("");
+    let digest = value["policy_sha256"].as_str().unwrap_or("");
+    if profile.is_empty()
+        || profile.len() > 64
+        || !profile
+            .bytes()
+            .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
+        || value["revision"].as_u64().unwrap_or(0) == 0
+        || digest.len() != 64
+        || !digest
+            .bytes()
+            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+    {
+        return json!({"status":"unverified", "code":"adapter_reference_invalid",
+            "reason":"Adapter did not return a complete policy identity", "quality_decision":"not_evaluated"});
+    }
+    json!({"status":"active", "source":"gitguard-policy-reference/v1",
+        "reference_schema_version":1, "policy_location":"git-common-dir/gitflow.xml",
+        "profile":profile, "revision":value["revision"], "policy_sha256":digest,
+        "quality_decision":"not_evaluated"})
 }
 
 /// 调用已显式信任的只读适配器；返回原始策略判定，不提升为审批授权。
