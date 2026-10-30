@@ -7,7 +7,7 @@ on:
       plugin_sha:
         description: 'Full 40-character commit of the paired XML gitguard-plugin candidate'
         required: false
-        default: '229f3d22d711c3a08a9b4c2a7e56d50913740fb9'
+        default: '1d285f5215edf7b8074768cf13bc3be2d27a56fe'
         type: string
 permissions:
   contents: read
@@ -20,7 +20,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     env:
-      PAIRED_PLUGIN_SHA: ${{ inputs.plugin_sha || '229f3d22d711c3a08a9b4c2a7e56d50913740fb9' }}
+      PAIRED_PLUGIN_SHA: ${{ inputs.plugin_sha || '1d285f5215edf7b8074768cf13bc3be2d27a56fe' }}
     steps:
       - uses: actions/checkout@v4
         with:
