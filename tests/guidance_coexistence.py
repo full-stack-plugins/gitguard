@@ -94,7 +94,7 @@ class GuidanceCoexistence(unittest.TestCase):
         self.engine('install','--agents','codex')
         receipt_file=self.project/'.guard-install/gitguard.json'
         receipt=json.loads(receipt_file.read_text(encoding='utf-8'))
-        entry=next(e for e in receipt['entries'] if e['kind']=='markdown' and Path(e['path'])==self.agents)
+        entry=next(e for e in receipt['entries'] if e['kind']=='markdown' and Path(e['path']).samefile(self.agents))
         current=entry['content']
         # A recorded v0.1.0 block fixture: actual ownership receipt, no mock executor.
         old='<!-- GITGUARD_START -->\n## gitguard\n\n- 先读取已激活工作流。\n<!-- GITGUARD_END -->'
