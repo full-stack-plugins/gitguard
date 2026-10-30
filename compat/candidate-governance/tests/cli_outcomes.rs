@@ -11,7 +11,7 @@ use guardengine::{
     integration::{EvidenceProfile, RunStatus},
 };
 use std::{
-    io::Write,
+    io::{Seek, Write},
     process::{Command, Stdio},
     sync::atomic::AtomicBool,
 };
@@ -40,20 +40,27 @@ fn request(r: &Repo, oid: &str, enforcement: Enforcement, path: &str) -> CheckRe
     }
 }
 fn cli(value: &serde_json::Value, args: &[&str]) -> std::process::Output {
-    let mut child = Command::new(env!("CARGO_BIN_EXE_gitguard"))
+    // A fully prepared regular-file stdin has no parent-to-child pipe writer:
+    // commands may reject argv before consuming any bytes without racing I/O.
+    let mut input = tempfile::tempfile().unwrap();
+    input.write_all(&serde_json::to_vec(value).unwrap()).unwrap();
+    input.rewind().unwrap();
+    Command::new(env!("CARGO_BIN_EXE_gitguard"))
         .args(args)
-        .stdin(Stdio::piped())
+        .stdin(Stdio::from(input))
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
-        .spawn()
-        .unwrap();
-    child
-        .stdin
-        .take()
+        .output()
         .unwrap()
-        .write_all(&serde_json::to_vec(value).unwrap())
-        .unwrap();
-    child.wait_with_output().unwrap()
+}
+#[test]
+fn unsupported_arguments_reject_large_input_without_delivery_race() {
+    // Exceed a pipe's capacity so an argv rejection cannot race a successful
+    // small write and hide the helper's early-close failure.
+    let value = serde_json::json!({"ignored": "x".repeat(1_048_576)});
+    let out = cli(&value, &["check", "--unsupported-fixture-option"]);
+    assert_eq!(out.status.code(), Some(4));
+    assert!(out.stdout.is_empty());
 }
 #[test]
 fn cli_real_engine_bundle_exit_codes_and_report_match() {
