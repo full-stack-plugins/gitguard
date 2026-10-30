@@ -1,0 +1,7 @@
+# Local libc consumer compatibility
+
+GitGuard's own Cargo.lock continues to select **libc0.2.177**. The library manifest permits the narrow inclusive range `>=0.2.177, <=0.2.189` so an opt-in host can compose GitGuard with mature CodeGuard, whose existing Tokio1.53.1/Mio1.2.3 dependencies require libc>=0.2.183 and whose existing lock selects0.2.189. No CodeGuard native dependency or lock is downgraded or rewritten by this change. Other consumers that pin0.2.177 can continue resolving that version.
+
+The compatibility matrix exercises the two endpoints only:0.2.177 and0.2.189 on Linux x86_64. Versions between these endpoints are permitted by Cargo resolution but are **not individually qualified**. A consumer must retain an explicit reviewed lockfile; this range is not a claim of universal libc/OS behavior. GitGuard's MSRV declaration remains1.90. No process filter, syscall policy, filesystem contract, source code or runtime feature is changed.
+
+Both endpoint runs use exact source and fixed GuardEngine6527e2a67cb55690330c95dd12b496dd878ed39b. Full suites include actual seccomp denial, timeout/reaping, combined-output, source-state, candidate binding, immutable tree reader, durable history and CLI/API/MCP tests. The alternate0.2.189 lock belongs to an isolated verification archive, not this repository's lock. Evidence is in the cloud ledger gitguard-libc-compatibility-report.md. Independent review remains required before the host's candidate qualification is accepted.

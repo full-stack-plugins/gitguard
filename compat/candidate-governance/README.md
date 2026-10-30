@@ -1,0 +1,50 @@
+# GitGuard
+
+[English](README.md) · [简体中文](README.zh-CN.md)
+
+**Read-only Git candidate observation, frozen change scope and candidate-bound evidence.**
+
+This implementation branch contains a Rust library, a `gitguard check` CLI, schemas and real Git tests. It is no longer documentation-only. **27/28 OpenSpec tasks are independently accepted for their documented local profiles**. GitLab response and retained CodeGraph extensions are accepted locally; GitHub protected hosted integration remains incomplete. See [implementation progress](docs/implementation-progress.md) and [tasks](openspec/changes/add-candidate-bound-git-governance/tasks.md) for precise acceptance boundaries.
+
+## Implemented local capabilities
+
+- Real SHA-1/SHA-256 objects, linked worktree common directories, commit/tree/index/worktree distinction, full immutable OIDs and byte-safe path scope, including both rename endpoints.
+- Private temporary two-parent merge previews, exact candidate/base/group/member bindings and isolated task/worktree leases. Dirty sources and missing submodule/graph coverage remain explicit uncertainty.
+- Actual GuardEngine projection, bounded evaluation and artifact verification. `gitguard check` reads one strict JSON request on stdin and writes the current bundle to stdout: 0 ALLOW, 2 BLOCK, 3 REQUIRE_APPROVAL, 4 failure. There is no `--report` or mutable-ref convenience command.
+- Explicit trust-provider ports, full-key-bound consumption and process-local append-only history/CAS. A separate restricted Linux local-file backend provides tested restart and multiprocess behavior; its review status is recorded separately. Neither store turns historical eligibility into current authority.
+
+The original semantic graph port and authority implementations under tests are labelled fixtures. The [CodeGraph importer](adapters/codegraph/README.md) also consumes an actual retained export and exact Git source bundle; every successful result still reports unknown semantic coverage, never conflict-free completeness. The [GitLab adapter](adapters/gitlab/README.md) has an independently validated local response/controller-port profile, not a qualified live instance. **No production authority provider or protected hosted admission/remote writer is supplied.** Versioned read-only MCP, specialist baseline/approval verification ports and the separately authorized private local executor are implemented; execution remains disabled by default. Explicit local reftable receipts support Linux x86_64/Git 2.47.3/SHA-1 process-crash recovery; default files without acknowledgement remain unknown. This is not power-loss durability or a hosted receipt claim. See [intent and recovery boundaries](docs/operation-intents.md). ALLOW is a technical result, not merge permission. Approval cannot repair partial/error evidence or rewrite REQUIRE_APPROVAL.
+
+Observation currently requires controlled local checkouts; hostile concurrent filesystem replacement and full OS resource containment are not proven. Repository labels are assigned by the caller, never authenticated from origin URLs. [Observation limits](docs/git-observation-adr.md), [history limits](docs/local-evidence-store-adr.md) and [Linux persistence limits](docs/durable-history-adr.md) are part of the supported contract.
+
+## Build and run
+
+Development uses a sibling `../guardengine` source checkout and Cargo.lock; this is not an independently published package. Rust 1.90 is the declared floor. The verified toolchain/Git matrix is recorded in the observation ADR.
+
+```sh
+cargo test --locked
+cargo run --locked -- check < request.json
+```
+
+Construct `request.json` according to the [actual CLI contract](docs/git-engine-cli-contract.md), using real immutable candidate/base OIDs and a scope policy digest derived from `FrozenPolicy`. [CLI tests](tests/cli_outcomes.rs) construct real requests. There are no `scope check`, `conflict analyze` or `merge apply` commands.
+
+For a complete real-object producer fixture and exact artifact bytes:
+
+```sh
+cargo run --locked --example export_evidence -- /absolute/path/to/new-golden-directory
+```
+
+This creates a disposable repository, runs the actual producer and exports contract/facts/report/envelope/domain, the complete bundle and the source Git bundle. It does not authenticate the fixture as production evidence.
+
+## Protocol and remaining work
+
+Native `guard.partme.ai/v1alpha1` remains unchanged: strict GuardContract/GuardFacts/GuardReport and exact `forbid_relation`. Actual integration uses the separate `guard.integration/v1alpha1` envelope and eligibility ports; candidate bindings remain in GitGuard's `gitguard.candidate/v1alpha2` domain. Hash/recomputation verification does not prove issuer identity.
+
+The official gitflow-plugin was inspected and exercised read-only at a pinned commit: [compatibility survey](adapters/gitflow/compatibility.md). Its exit semantics differ from GitGuard. No opt-in adapter or replacement claim is enabled; native interfaces are unchanged.
+
+The sole remaining original task is GitHub protected integration (5.1). Its [local authenticated webhook and exact-candidate profile](adapters/github/README.md) is independently accepted, but live installation/current lookup, protected required checks, hook-bypass blocking, group-rebuild revalidation and matching hosted receipts have not been demonstrated. Atomic exact admission remains unsupported. Production provider deployment, hosted protection and independent public release remain explicit deployment boundaries. [Architecture](docs/architecture.md) and [technical design](docs/technical-design.md) describe this broader target; their future capabilities are not current product claims. [Integration contract](docs/integration-contract.md) and [dependency roadmap](openspec/guard-roadmap.md) explain shared boundaries.
+
+Versioned local read-only adapters are available through `gitguard api` and
+`gitguard mcp-stdio`; the original `gitguard check` remains available. See the
+[CLI/API/MCP contract](docs/read-only-interface-ports.md) for supported capabilities
+and explicit write/credential restrictions. This does not grant Git mutation authority.

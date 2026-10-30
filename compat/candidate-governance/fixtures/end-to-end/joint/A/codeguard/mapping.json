@@ -1,0 +1,1 @@
+{"version":"codeguard.mapping/v1alpha1","entries":[{"source":{"kind":"finding","tool_id":"ruff","native_rule_id":"F401"},"rule_id":"f401"},{"source":{"kind":"gap","detail":"ruff_f401_scope_incomplete"},"rule_id":"f401"}]}

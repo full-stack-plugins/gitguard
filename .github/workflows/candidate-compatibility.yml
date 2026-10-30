@@ -1,0 +1,48 @@
+name: GitGuard preserved Linux candidate compatibility
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  compatibility:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_BUILD_JOBS: "1"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+      CARGO_PROFILE_DEV_DEBUG: "0"
+    defaults:
+      run:
+        working-directory: gitguard/compat/candidate-governance
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: gitguard
+      - uses: actions/checkout@v4
+        with:
+          repository: full-stack-plugins/guardengine
+          ref: b0e4b445e1a20a9354d55ebb41bbedaf16ec8a74
+          path: guardengine-compat
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - name: Verify exact historical API dependency and restricted Git profile
+        run: |
+          python3 - <<'PY'
+          import subprocess
+          actual = subprocess.check_output(['git','-C','../../../guardengine-compat','rev-parse','HEAD'],text=True).strip()
+          assert actual == 'b0e4b445e1a20a9354d55ebb41bbedaf16ec8a74', actual
+          version = subprocess.check_output(['/usr/bin/git','--version'],text=True).strip()
+          print(version)
+          assert tuple(map(int,version.removeprefix('git version ').split('.')[:2])) >= (2,50), version
+          PY
+      - name: Check preserved safety targets
+        run: cargo clippy --locked --features privileged-execution --lib --test runner_security --test atomic_admission --test executor_disabled --example local_bare_apply -- -D warnings
+      - name: Full default compatibility tests (writer remains disabled)
+        run: cargo test --locked
+      - name: Full explicitly enabled execution tests in disposable fixtures
+        run: cargo test --locked --features privileged-execution
+      - name: Exercise only self-created isolated bare repositories
+        run: cargo run --locked --features privileged-execution --example local_bare_apply

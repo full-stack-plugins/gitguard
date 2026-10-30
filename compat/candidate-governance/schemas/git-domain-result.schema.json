@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GitGuard local engine-projection domain artifact",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "apiVersion",
+    "mappingVersion",
+    "candidate",
+    "changes",
+    "advisory",
+    "authorization"
+  ],
+  "properties": {
+    "apiVersion": {
+      "const": "gitguard.domain/v1alpha1"
+    },
+    "mappingVersion": {
+      "const": "gitguard.mapping/v1alpha1"
+    },
+    "candidate": {
+      "$ref": "candidate-snapshot.schema.json"
+    },
+    "changes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "changes",
+        "violations",
+        "missing_coverage"
+      ],
+      "properties": {
+        "changes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "paths",
+              "old_mode",
+              "new_mode",
+              "status"
+            ],
+            "properties": {
+              "paths": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 255
+                  }
+                }
+              },
+              "old_mode": {
+                "type": "string"
+              },
+              "new_mode": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "violations": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 255
+            }
+          }
+        },
+        "missing_coverage": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 255
+            }
+          }
+        }
+      }
+    },
+    "advisory": {
+      "const": true
+    },
+    "authorization": {
+      "const": "not-evaluated"
+    }
+  },
+  "$comment": "Separate GitGuard artifact; never insert these fields into GuardFacts/GuardReport. The engine profile verifies recomputation, not producer or policy authority."
+}

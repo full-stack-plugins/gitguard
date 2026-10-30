@@ -1,0 +1,46 @@
+//! Advisory, read-only Git candidate observation.
+pub mod git;
+pub use git::repository::Repository;
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Diagnostic {
+    InvalidRepository,
+    UnsupportedFormat,
+    UnsafeStorage,
+    LimitExceeded,
+    GitFailed,
+    UnsupportedProcessProfile,
+    ProcessCleanupFailed,
+    ProcessPolicyDenied,
+    InvalidObject,
+    InvalidScope,
+    DirtySubject,
+    InvalidBinding,
+    Conflict,
+    Cancelled,
+}
+pub type Result<T> = std::result::Result<T, Diagnostic>;
+impl From<std::io::Error> for Diagnostic {
+    fn from(_: std::io::Error) -> Self {
+        Self::InvalidRepository
+    }
+}
+pub mod api;
+pub mod candidate;
+pub mod cli;
+pub mod conflicts;
+pub mod evidence;
+pub mod execution;
+#[path = "../adapters/gitflow/mod.rs"]
+pub mod gitflow;
+#[path = "../adapters/github/mod.rs"]
+pub mod github;
+#[path = "../adapters/mcp/mod.rs"]
+pub mod mcp;
+pub mod preflight;
+pub mod scope;
+pub mod subject;
+pub mod worktree;
+#[path = "../adapters/codegraph/mod.rs"]
+pub mod codegraph;
+#[path = "../adapters/gitlab/mod.rs"]
+pub mod gitlab;

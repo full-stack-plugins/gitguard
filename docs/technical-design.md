@@ -1,3 +1,5 @@
+> Current runtime contract: `install` owns AGENTS guidance; plugin `init` initializes only git-common-dir/gitflow.xml. XML is the sole runtime GitFlow policy authority. The broader candidate-governance design below is retained as design/history; its Linux implementation is isolated under [compat/candidate-governance](../compat/candidate-governance/COMPATIBILITY.md), not the default three-platform CLI.
+
 # GitGuard — 技术实施方案
 
 > 目标 V0.1。当前 GitGuard 是新仓库，尚无独立 CLI；GitFlow 的行为/文档在单独插件仓库，不能把计划标记为已实现。

@@ -1,0 +1,8 @@
+{
+  "api_version": "gitguard.operation-intent/v1alpha1",
+  "store_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "operation_id": "op-1",
+  "request_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "generation": 0,
+  "state": "prepared"
+}

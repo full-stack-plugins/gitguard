@@ -1,0 +1,21 @@
+{
+  "exit_code": 0,
+  "interrupted": false,
+  "profile": "trusted fixed fixture only",
+  "command": [
+    "cargo",
+    "test",
+    "--locked",
+    "--offline",
+    "--manifest-path",
+    "/workspace/guard-implementation-ledger/specguard-flowguard-work/repository/Cargo.toml",
+    "-p",
+    "cross-guard-app",
+    "--lib",
+    "tests::required_answer",
+    "--",
+    "--format",
+    "pretty",
+    "--test-threads=1"
+  ]
+}

@@ -1,0 +1,1 @@
+{"apiVersion":"guard.partme.ai/v1alpha1","kind":"GuardContract","metadata":{"id":"ruff-f401","revision":"1"},"spec":{"rules":[{"id":"f401","enforcement":"enforce","assertion":{"type":"forbid_relation","subject":"python","predicate":"has","object":"unused-import"}}]}}

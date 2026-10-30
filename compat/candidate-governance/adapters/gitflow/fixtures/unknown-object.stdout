@@ -1,0 +1,1 @@
+{"schema_version": "1.0.0", "action": "check", "decision": "unverified", "reasons": [{"code": "ci_object_unknown", "message": "CI 必须提供本地存在的完整 commit OID；检查不会自动 fetch。"}], "next_actions": []}

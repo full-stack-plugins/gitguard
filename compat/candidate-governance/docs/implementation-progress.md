@@ -1,0 +1,290 @@
+# Implementation progress — add-candidate-bound-git-governance
+
+Base: 5c511ccbd7c6d11c01dab5d80deff0a4f15383dd. Isolated implementation branch; no baseline runtime/build/tests exist.
+
+Using executing-plans and test-driven-development. Root owns review and checkbox acceptance.
+
+| Tasks | Concrete implementation / tests | Prerequisites |
+|---|---|---|
+| 1.1–1.2 | Repository discovery, private object mirror, constrained Git runner; real SHA1/SHA256 and malicious config tests | local Git |
+| 1.3–1.6 | typed subjects, frozen scope, NUL raw diff and preflight; dirty, rename, binary paths, submodule tests | discovery/runner |
+| 2.1–2.2 | temporary candidate construction and exact queue bindings; parent/group/order drift tests | immutable subjects |
+| 2.3–2.4 | lease registry and explicit graph coverage; cancellation/reuse and API risk tests | scoped identities |
+| 2.5–2.6 | strict candidate serialization/schema and composed read-only acceptance; docs | prior slice |
+
+Pre-flight: 1.1 repository object format supplies 1.3 OID checks; 1.3 frozen subject supplies 2.1 candidate; 1.4 policy is caller-frozen and never loaded from candidate; 2.2 queue authentication remains external and advisory. Shared envelope/engine fields are not invented.
+
+Ruling: Linux/Unix first, pinned system /usr/bin/git; copy bounded object store into private temp metadata and reject alternate/symlink object storage. This avoids reading untrusted repository config during observation. Cost: large or alternate-backed repositories fail closed instead of being supported.
+Ruling: full immutable OIDs only; mutable revision names are not accepted. Repo IDs are caller-assigned local labels and never claimed authenticated; controller registration remains later trust integration.
+Ruling: no auto-fix, credentials, network, or Git writes to source repositories. Candidate creation writes only private temporary metadata. No task checkboxes change before root review.
+
+## Slice execution / review handoff
+
+Scope pause from root was lifted by a subsequent explicit continue instruction; implementation resumed without commits during the pause. This ledger and the final report supersede the temporary interrupted report.
+
+Implemented pending review: repository/object isolation; subject/index/worktree distinctions; frozen local scope and raw NUL diff; composed advisory preflight; private two-parent merge previews; exact queue candidate/group/member bindings; process-local worktree leases; labelled semantic graph fixture port; strict candidate records and reproducible real-object vector. No task checkbox changed.
+
+TDD cycles (logs in /workspace/guard-implementation-ledger):
+1. repository unsupported stub RED 0/2 -> GREEN 2/2 (red1-behavior/green1).
+2. subjects RED 0/1 and diff RED 0/2 -> full GREEN 6 tests (red2*/green2).
+3. merge construction RED 1/2 and queue RED 0/1 -> full GREEN (red3*/green3).
+4. parallel registration RED 0/1 -> full GREEN (red4/green4).
+5. composed preflight RED 0/1 and shared API graph RED 0/1 -> full GREEN (red5*/green5).
+6. missing nullable baseline and metadata symlink RED; then stale clean flag RED -> full GREEN (red6*/green6).
+7. hidden staged changes and deserialized clean flag RED -> full GREEN (red7*/green7).
+8. missing nullable merge-group and scope baseline RED -> GREEN (red8*/green8).
+9. digest-only baseline accepted RED -> rejected GREEN (red9-baseline/green9-baseline).
+
+Ruling: first local scope profile permits explicit null baseline only, rejecting non-null digest-only claims. Immutable source revision and authenticated baseline policy need a subsequent slice; a baseline-required gate stays unavailable.
+Ruling: CandidateRequest in candidate.rs is the resolved queue input port; no redundant adapter forwards an unverified event. Actual provider event authentication remains outside this slice.
+Ruling: process-local lease registry only, no durable cross-process cancellation/history guarantee. Cost: callers needing that guarantee cannot use this registry as their scheduler.
+Ruling: this slice remains advisory and documents unsupported hostile concurrent directory replacement and OS resource exhaustion rather than claiming a production sandbox. Cost: task 1.2 and protected admission remain partial.
+
+Task status: 1.1 substantial local implementation (MSRV/toolchain matrix pending); 1.2 partial hardening; 1.3 implemented local contract; 1.4 partial (local scope immutable, baseline source/authority unsupported); 1.5 implemented byte-safe static path contract; 1.6 implemented local advisory boundary; 2.1 implemented initial two-parent local preview; 2.2 implemented resolved local exact binding, production event adapter unsupported; 2.3 implemented process-local leases; 2.4 implemented explicitly labelled graph fixture port; 2.5 implemented local null-baseline serialization profile; 2.6 implemented local acceptance, not production authoritative gate. Root decides full task acceptance after review. Groups 3–5 untouched.
+
+Final verification: `cargo fmt --check` passed; `cargo test` passed 21 integration tests, zero failures, plus empty unit/doc suites; `cargo clippy --all-targets -- -D warnings` passed; strict OpenSpec validate passed 1 change with zero issues. Detailed final logs: gitguard-final-tests.log, gitguard-final-clippy.log, gitguard-openspec.log. Initial clippy found one collapsible-if style issue, fixed before the final clean run. Independent review is delegated to root; no full production acceptance asserted.
+
+
+## Independent-review P2 fix — scope binding
+
+Review: /workspace/guard-implementation-ledger/gitguard-review.md. Confirmed actual allowed path prefixes were omitted from snapshot identity, so identical caller policy digests concealed different enforced scopes. No task checkbox changed.
+
+Ruling: bind the actual canonical `allowed_paths` directly, alongside the existing task, requirements, policy and baseline fields. Normalize only lexicographic unsigned-byte sorting and exact duplicate removal at snapshot preparation. Retain byte/case distinctions and redundant ancestor/descendant prefixes; do not infer normalization from an external policy digest. Deserialized snapshots must already be canonical and safe.
+
+Compatibility: advance local snapshot wire version from gitguard.candidate/v1alpha1 to v1alpha2; reject old records, require allowed_paths, update the real-object vector and schema. All prior binding digests require regeneration. FlowGuard implementer notified; Rust constructor compatibility retained, allowed_paths getter added. No authentication/trust capability changed.
+
+TDD: `cargo test --test scope_binding` RED 0/2: opposite local completeness outcomes had identical digest; allowed_paths was absent. Same command GREEN 2/2 after fix. Logs: gitguard-review-fix-red.log and gitguard-review-fix-green.log. Tests additionally cover byte sorting/non-UTF-8, exact duplicate normalization, unsafe/unsorted/duplicate serialized paths, required field and old-version rejection.
+
+Review-fix verification: full `cargo test` passed 23 integration tests, zero failures; `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`, and `git diff --check` passed. Evidence: gitguard-review-fix-tests.log and gitguard-review-fix-clippy.log. Awaiting root's independent recheck; earlier trust, baseline, filesystem and process-containment limitations remain unchanged.
+
+## Independent review acceptance
+
+Local full task acceptance: 1.3, 1.5, 1.6, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6. Review findings were fixed with RED/GREEN regressions and independently rechecked; see cloud execution ledger gitguard-review.md. Scope remains local and advisory/fixture-labelled where stated. Production authority, remaining capability gaps and hosted gates are not claimed.
+
+## Slice 2 plan — 3.1/3.2/4.1
+
+Base 1d72ba1 (root recorded bounded local task acceptance). Preserve candidate v1alpha2 and FlowGuard consumers.
+- 3.1: actual GE GuardFacts/forbid_relation mapping, pinned local mapping version, policy digest matched to actual engine contract; real clean/violation/partial and enforce/review/advise tests. Domain data stays outside engine objects.
+- 3.2: strict versioned JSON CLI input and stdout bundle (envelope + exact artifacts); no --report support. Real GE attempt lifecycle when available, no pre-binding envelope, bound errors/cancelled null, decision/exit correspondence and strict input rejection. No stale output file can become success.
+- 4.1: default-disabled optional writer configuration and always-denied local port until reviewed external authorization exists. No credentials, transport, grants, remote writes or approval booleans as authority.
+Ruling: use sibling GuardEngine source dependency only for local development, not claim published independent distribution. stdout-only CLI deliberately rejects --report; callers must check process code and bundle integrity. Gitflow provider survey deferred from this bounded slice unless spare independent time remains.
+
+Slice 2 implemented pending review:
+- 3.1 actual GuardEngine mapping and recomputation; engine policy digest checked against scope; strict relation/version/field checks; partial scope yields real BLOCK/INDETERMINATE. Domain schema emitted separately; no current wire extension.
+- 3.2 actual strict check CLI and real GE prepare_attempt/finish lifecycle. stdout-only artifact bundle; no --report. Real 0/2/3/4, post-bind cancellation/error null, immutable required scope set includes candidate binding digest; failed final observations clear coverage. Actual external signal delivery remains untested; cooperative bound token path is covered.
+- 4.1 deliberate always-denied optional writer, default feature/config disabled and enabled-feature path still rejects without external authorization. No transport or credentials implemented.
+- 3.6 provider survey intentionally not started, keeping this slice small for independent review. GE-TRUST/provider and privileged operations remain separate future work.
+
+TDD: projection unsupported scaffold RED 0/2 -> GREEN2/2; CLI scaffold RED3 failed/1 passed -> GREEN4/4; executor accepting scaffold RED0/2 -> GREEN2/2 in both default and feature-enabled builds; oversized 129-rule contract RED accepted -> rejected GREEN; final error coverage RED retained Complete -> cleared Partial GREEN. Logs under /workspace/guard-implementation-ledger/gitguard-slice2-*.log. Engine's AttemptOutput.coverage was added during this slice; initial executor test compile failure is recorded separately from the subsequent genuine behavioral RED.
+
+Final verification: `cargo test` 32 integration tests passed, zero failures (empty unit/bin/doc suites); feature-enabled executor tests 2/2; `cargo clippy --all-targets --all-features -- -D warnings`, `cargo fmt --check`, `git diff --check` passed; strict OpenSpec passed 1/1 with zero issues. Source dependency GuardEngine observed at 1498970670b4b364430b091836c23cb37abc75f8. No new task checkbox updates before root review.
+
+## Slice 2 independent acceptance registration
+
+Root authorized recording complete tasks 3.1, 3.2 and 4.1 after independent review of be31e5d. Review evidence: /workspace/guard-implementation-ledger/gitguard-slice2-review.md — no concrete P1/P2; 32 integration tests and two feature-enabled denial tests independently passed, plus adversarial actual-Git scope substitution and forged ChangeSet probe.
+
+Exactly 12/28 tasks now accepted: 1.3, 1.5, 1.6, 2.1–2.6, 3.1, 3.2, 4.1. Acceptance retains the local advisory / engine integration / denied-executor limits. Previously partial 1.1, 1.2 and 1.4 remain unchecked; no authenticated provider, protected admission, baseline support or operational writer is thereby accepted.
+
+## Slice 3 plan — GE trust ports, local CAS/freshness/audit, compatibility survey
+
+Base e72b130. Root approved process-local Mutex over actual GE InMemoryAttemptStore; no restart/multiprocess/durable transaction claim, and durable capability requests must reject. Plan: real-engine artifact consumption with fresh AuthorityProvider calls; full candidate/policy/producer/coverage/dependency/config reuse keys; two-thread generation CAS and late-completion isolation; separate authenticated-access audit port with hashed records and bounded retention. Production providers remain unavailable. Report 3.4 as localprofile/partial pending precise independent review; never complete 4.4 durable intent from this work.
+
+Slice 3 implemented for independent review, with tasks unchanged at 12/28:
+- 3.3 local GitGuard profile: actual GE eligibility/provider ports, strict candidate and artifact binding, no installed authority provider. Cross-specialist profiles and actual approved non-null baseline are deferred.
+- 3.4 localprofile/partial: actual GE in-memory store behind Mutex, store-owned tickets, full reuse digest, per-target generation CAS and immutable completion history. Durable requirement rejects; no cross-process/restart/transaction guarantee, no 4.4 implementation.
+- 3.5 localprofile/partial: input drift identity and fresh expiry/revocation checks; bounded sanitized audit records with external identity/ACL and expired-row purge ports. No production identity/audit service.
+- 3.6 partial survey only: official gitflow-plugin 0.2.0 at 310c43c5e3fe7effa19245dcc4970249e569004c; observed allow0/deny1/unverified3/usage-error2 plus same-candidate GitGuard ALLOW0. No opt-in adapter enabled; internal error4 source-inspected, not exercised. See adapters/gitflow/compatibility.md and observed.json.
+
+ADR: docs/local-evidence-store-adr.md fixes capability limits, authoritative caller inputs, non-transactional audit/history separation and rejection of durable storage. Candidate v1alpha2 unchanged; reuse v1alpha1 newly local.
+
+TDD: missing consumption RED0/2→GREEN2/2; missing CAS/durable check RED0/2→GREEN2/2; incomplete freshness key RED0/1→GREEN; unauthorized audit read RED0/1→GREEN2/2; rehashed unknown domain field RED0/1→GREEN; cross-store ticket publication RED0/1→GREEN3/3, then genuine two-task same-repo case GREEN4/4. Logs gitguard-slice3-{red,green}-*.log in external ledger.
+
+GE producer budget follow-up: shared evaluate_bounded at GuardEngine 11e1d86 replaces native evaluate in producer and removes copied generic expansion formulas; mapped fact input limits remain domain-owned. New evaluator boundary test using old evaluate was behavioral RED0/1 (128 rules ×4096 facts accepted), then GREEN on shared bounded API. This is a refactoring boundary regression, not a claim that the previous whole producer lacked its own cap. Real 700-path candidate/128-rule integration regression confirms Error/null/no report and unchanged source bytes. Both bound observation and evaluation errors clear coverage and retain attempt identity.
+
+Final verification: offline Cargo full suite 43 tests (1 unit +42 integration), zero failures; feature-enabled executor denial2/2; offline all-target/all-feature Clippy -D warnings, fmt check and git diff --check passed. Strict OpenSpec1/1 passed. Official survey rerun passed clean pinned checkout and unchanged fixture byte assertion. Cargo.lock records actual GE runtime tempfile dependency. Source dependency observed at 11e1d86eb353f006844ebb6eefd93f24b98ee481. Detailed handoff: /workspace/guard-implementation-ledger/gitguard-slice3-report.md. No new task acceptance asserted.
+
+## Slice 4 plan — Linux local durable attempt history (3.4)
+
+Base f733989; slice3 independently reviewed elsewhere, no checkbox changes. Add a separate Linux owner-private local-filesystem backend. Stable flock lock, atomic same-directory snapshot replacement with file+directory sync, bounded strict versioned replay records into actual GE InMemoryAttemptStore. Retain existing in-process store and refuse unsupported capabilities. Tests first: reopen preserves immutable history/current and generation, two real processes race with one CAS winner, newer attempt defeats late old publication, corrupt/missing state does not reset, invalid/symlink/permissive directory refuses. Introduce no execution intent, remote write, authority provider or server. Detailed remaining-task dependency inventory: /workspace/guard-implementation-ledger/gitguard-critical-path.md.
+
+Slice3 independent-review P2 corrected first in55718e0: old Consumption could be relabeled under changed dependency/configuration key. `consume_bound` now freezes full ReuseKey before actual provider evaluation; LocalHistory.complete compares private full digest, plain unbound consume cannot complete history. Root probe RED0/1 → race GREEN6/6; full45 passed, Clippy/fmt clean. See external gitguard-review-reuse-fix-report.md. No task accepted by implementer.
+
+Slice4 implemented pending review: separate Linux DurableHistory, strict bounded snapshot replay through actual GE store, private-directory identity/flock, same-directory synced file+atomic rename+directory sync, restart resume and full-key completion. Existing LocalHistory remains process-only; no operation-intent or hosted provider. ADR docs/durable-history-adr.md states precise filesystem/platform/controller assumptions and failure/uncertain outcomes. The environment's /tmp is tmpfs (rejected); tests use owner-private temporary directories on workspace overlayfs. Only overlayfs process crash/restart behavior exercised; hardware power-loss and other filesystem deployments unverified.
+
+TDD: initial memory-only store scaffold RED0/2 for loss on restart and unsafe initialization, actual file backend GREEN. Additional tests cover real two-process CAS, before/after-rename process exits, strict corrupt/invalid-native-transition/unknown-version rejection and genuine bound-consumption restart/relabel denial. A first test run correctly rejected /tmp tmpfs; fixture location moved to supported overlayfs. One helper array-length compile error and one Clippy collapsible-if were corrected; neither counted as behavioral RED.
+
+Final slice4 verification: offline Cargo52 tests passed (7unit including subprocess-worker entry,45integration), zero failures; feature-enabled writer denial2/2; all-target/all-feature offline Clippy -Dwarnings, fmt and diff checks clean; strict OpenSpec1/1. Logs gitguard-slice4-{tests,process-tests,bound-tests,feature,clippy,openspec}.log. Shared GuardEngine c80ec325449842d51007db2fd507040c53dc8f51 now requires yaml-rust2; Cargo.lock reflects actual dependency and is offline validated. No new dependency introduced by local storage. Remaining-task critical path recorded at /workspace/guard-implementation-ledger/gitguard-critical-path.md; 3.4 remains pending independent review and checkboxes stay12/28.
+
+## Independent acceptance — 3.4
+
+Root accepted3.4 after gitguard-reuse-fix-independent-review.md independently reproduced complete reuse binding and cancellation/new-ID retry behavior (45full +7race/probe). Exactly13/28 tasks checked. Acceptance is the process-local ADR profile; df2f756 durable backend remains separately pending review.
+
+## Slice5 plan — complete 1.1 supported local profile and correct current documentation
+
+Inspect1.1/1.2/1.4: linked common-dir and SHA1/SHA256 objects already real-tested; discovery still line-parses config without section/quoting semantics. Complete1.1 by frozen native Git config parsing without includes, strict repository format/version/extension handling, version capability reporting and honest tested toolchain floor. TDD real config with unrelated objectformat, quoted SHA256, unknown format/version/extension, identity independence and source immutability. Current actual executable is /usr/bin/git2.47.3 (prior ADR's2.52.0 was not the pinned runner), Rust1.99.0. Limit supported profile to tested Linux/Git, make untested lower MSRV claim explicit/remove it. 1.2 still lacks full hostile concurrent traversal/resource containment;1.4 needs immutable baseline source and approval port, so neither is claimed complete in this slice. Update bilingual README and technical design to distinguish implemented/reviewed/pending capabilities.
+
+Root reports df2f756 durable backend independently passed52tests+2probes+Clippy with noP1/P2; evidence gitguard-durable-independent-review.md. This strengthens already accepted3.4 and does not complete4.4 or increase13/28.
+
+Slice5 completed for review: task1.1 now has a complete bounded local profile, including native frozen config grammar, section-qualified algorithms, repository version/extension/include rejection, observed actual Git version and caller-label API. No source config becomes operational Git config; actual objects still fsck before use. Real section/quotedSHA256/unknown config/origin identity/source immutability regressions added. Task1.2 containment and1.4 protected baseline remain separately incomplete. No checkbox changed beyond independently authorized3.4 registration (13/28).
+
+TDD `cargo test --offline --test repository`: RED2passed/2failed (unrelated objectformat misinterpreted; unsupported config accepted), then GREEN4/4 plus runner2/2. Official isolated Rust1.90.0 installed after root explicit approval; keep Cargo's declared1.90 floor. Both `cargo +1.90.0 test --locked --offline` and actual1.99 `cargo test --locked --offline` passed54 tests; feature-enabled denial2/2, Clippy all-target/all-feature -Dwarnings, fmt, diff and strict OpenSpec1/1 passed. Actual runner /usr/bin/git2.47.3; earlier2.52.0 ADR claim corrected. Final shared GE6ae9bb4a2f77309dc7bf9216095967c2710c038e.
+
+Bilingual READMEs and technical design now describe implemented/local/reviewed versus future capabilities; architecture's opening likewise distinguishes historical main from this branch. Local links validated. `examples/export_evidence.rs` constructs a real temporary Git repository and uses FrozenPolicy/BoundCheck to emit exact contract/facts/report/envelope/domain/bundle bytes and source.bundle; all artifact hashes checked against envelope. Actual golden directory /workspace/guard-implementation-ledger/gitguard-golden-slice5; no hand-built OIDs/envelope or production authority fixture. Root owns cross-consumer matrix. Detailed handoff gitguard-slice5-report.md in external ledger.
+
+## Reviewed Git configuration and toolchain checkpoint
+
+Task1.1 accepted for the declared local profile after14854ff and independent54-test regression plus two config probes; Rust1.90 focused tests also independently passed. Native Git2.47.3 config parsing is measured, not guessed from workspace Git. Supported SHA1/SHA256/config extension boundary remains explicit. Reviewed total14/28; this does not enable production authority, protected CI or remote writing.
+
+## Git subprocess task1.2 implementation awaiting independent review
+
+Added the explicitly restricted Linux single-process Git profile described in
+[git-runner-linux-adr.md](git-runner-linux-adr.md). Fixed executable/argv and private
+object-store observation now use audit-architecture-checked seccomp, no_new_privs,
+zero core dumps, nonblocking combined-byte capture and bounded direct-child
+cleanup. Forbidden process/network syscalls fail explicitly; source config and
+inherited helper environments remain isolated. Actual loose/packed Git, candidate,
+merge preview, NUL paths and unchanged-source regressions pass. No write executor,
+production authority or general sandbox claim is added.
+
+Final full suite68/68, runner-security8/8 and strict all-target Clippy pass. FlowGuard fixed7dbe801 consumer tests20/20
+pass against the new runner. TestGuard has no direct GG dependency; new ArchGuard
+candidate-source integration still awaits its separate read_commit_files API slice.
+Task1.2 is not self-accepted; existing14/28 and capability documentation remain.
+
+## Independently reviewed bounded Git runner: 15/28
+
+Task1.2 is accepted for the explicit Linux x86_64 / trusted `/usr/bin/git` / stable source profile in52f07b08065f2594181102c71866649ee3864cad. Independent review repeated68tests plus3mechanism probes and1real packed/corrupted-object probe; syscall denial, process reaping, pipe budgets and unchanged source state passed. SIGSYS remains ProcessPolicyDenied, never a merge conflict. The reviewer could not exercise a functional compat-int80 environment and makes no compatibility-ABI or aarch64 runtime claim. See cloud ledger `gitguard-runner-independent-review.md`. Subsequent additive commit-tree readerc33b28a is separately pending review.
+
+## Independently reviewed local CLI/API/MCP ports: 16/28
+
+Task5.3 accepted for e7396c1 +805a09f after independent interface/capture review and an11-test fix retest. The MCP negotiation P2 is closed: unsupported client versions receive the supported2025-11-25 version; client decides whether to continue. API unknown versions and write capabilities still reject. Existing check behavior remains. Owner full82tests and strictclippy pass; reviewer retained its earlier live-GE fullsuite as supplementary evidence rather than a fixed-pin claim. Reports: cloud ledger gitguard-interface-independent-review.md and gitguard-interface-version-fix-report.md. No production authentication/write provider or host service is claimed.
+
+
+## Reviewed protected source scope
+
+Task 1.4 accepted at `c602bfb0742d67a187251c0903c6ba8270baaeb3` for the local-controller-source-only profile. Independent full suite:90 passed; two additional SHA1/SHA256 source-mode/path/symlink probes passed; all-target Clippy and old schema compatibility checks passed. A private protected scope freezes controller-selected commit/path/raw digest and exact requirements/allowed paths before candidate analysis. Real immutable source bytes and repository association are revalidated; candidate policy deletion or weakening cannot redefine obligations. Descriptor identity includes source blob/mode/revision and any optional baseline provenance.
+
+Old TaskScope/candidate schemas and CLI remain advisory with null baseline. A descriptor digest is not SG baseline approval or producer authentication. Borrowed metadata budgets precede hashing/cloning/Git reads; source caps follow the already bounded whole-tree reader. No production authority, hostile same-UID isolation or general sandbox is accepted. Evidence: cloud ledger `gitguard-protected-scope-independent-review.md`.
+
+## 2026-10-09 reviewed local executor
+
+Root independently accepted task 4.3 after snapshots 5085593 (local Push transfer) and 0110787 (independent detached CreateWorktree). Evidence: ledger gitguard-transfer/worktree logs and root review, including extra binary/non-UTF8/executable-file and symlink rejection probes. Acceptance is Linux private local targets, regular files, fixture-authority validation; no network/linked-worktree/production-auth claim. GitGuard 22/28, cross-project 150/193. Task 4.5 remains unchecked; durable acknowledgement 10c2e2c is a reviewed sub-slice, not the complete recovery task.
+
+## Independently reviewed controller-frozen specialist consumption: 23/28
+
+The additive `evidence::specialists::PreparedSpecialistConsumption` port consumes a
+controller-frozen, nonempty required producer set through GE eligibility. Common
+repo/task/worktree/requirements/candidate/base/merge identity must match the real
+Git candidate; each domain keeps its independently frozen source digest, baseline,
+coverage, producer and contract policy. The existing Git candidate and TaskScope
+schemas still reject non-null baseline, and the existing self-bundle consumer is
+unchanged. There is no FlowGuard dependency or rule duplication.
+
+Every non-null specialist baseline requires an explicit controller-selected
+approval reference and separate policy binding that same domain and contract.
+Every consumption queries the authority provider again and uses GE
+`validate_approval_record` for baseline freshness and `evaluate_eligibility` for
+producer/review eligibility. An owned immutable byte map resolves exact artifact
+references; it never reads URI locations. Missing required items, changed bindings,
+expired/revoked approval, untrusted issuer or changed artifact references cannot
+qualify. Technical REQUIRE_APPROVAL/report bytes remain unchanged; approval cannot
+repair technical BLOCK, incomplete or failed evaluation.
+
+Tests restore the retained real five-producer candidate bundle and replay its
+unchanged SG/AG/CG/TG/GG evidence with independently frozen per-domain expectations.
+New test-only baseline/review/producer authority records are explicitly fixtures,
+not authentication of the historical capture or a production trust service. This
+port produces no execution grant and is not wired into execution dispatch. A
+protected controller must establish trustworthy domain sources, choose immutable
+bytes and supply authenticated authority records; content hashes alone do not do
+that. Existing `UnavailableAuthority` is still the safe unsupported provider.
+Task 3.3 is accepted for the local read-only verification port at
+`8b87946f065e485475c80c86f25c5ca5b3029c9a`, against GuardEngine
+`b0e4b445e1a20a9354d55ebb41bbedaf16ec8a74`. Root and independent reviewer
+confirmed the original task requires these verification mechanisms, not an
+installed production identity service or execution integration. GitGuard reached
+23/28 at that checkpoint; no other task status changed.
+
+The reviewer archived that fixed source and ran `cargo test --locked --offline
+--test specialist_consumption --test evidence_trust --test freshness_audit`:
+8 specialist + 3 trust + 8 freshness tests passed (19 total, zero failed/ignored).
+Evidence: ledger `gitguard-specialist-independent-review.md` and
+`gitguard-specialist-independent-tests.log`. Acceptance includes required-set,
+exact candidate/domain binding, reference-byte integrity, fresh issuer and
+baseline/review checks, and non-repair of BLOCK/partial/error. Test-only authority
+records do not deploy production identity or grant providers, authenticate old
+captures, or authorize execution. These deployment boundaries remain explicit;
+they are not additional prerequisites for the accepted local verification port.
+
+
+## Independently reviewed four-group joint consumption: 24/28
+
+Task 5.5 is accepted at `5207e9e2dff367856f052f530258adce2351ae14` for the
+original supported local joint profile. The reviewer ran the actual example from
+a fixed GG archive with GE `b0e4b445e1a20a9354d55ebb41bbedaf16ec8a74` (exit 0),
+checked four eligible candidate groups with five specialist audits each, all 32
+within-group negatives, three cross-context refusals, M1 late-publication refusal,
+unchanged source/artifacts and same-M2 cancellation, exact local effect and
+executor rollback/reopened Applied/RecoveryRequired history. All 340 transport
+file hashes and 304 original producer artifacts were independently verified;
+all 37 unique reachable objects matched the original captured repository.
+
+Evidence: ledger `gitguard-joint-specialists-independent-review.md` and
+`gitguard-joint-specialists-independent-example.{json,log}`. Acceptance combines
+this actual GG consumer run with the previously independently executed FG
+producer/native capture, including CodeGuard native/schema/sidecar comparison.
+The example does not rerun producers. Baseline/review/operation authorities remain
+explicit fixtures; original technical REQUIRE_APPROVAL and captured bytes remain
+unchanged. FG ALLOW and specialist eligibility never grant execution.
+
+The local late-completion proof uses existing GG self-bundle LocalHistory, not an
+aggregate specialist receipt store. Production identities, hosted queue checks,
+network receipts, deployment rollout and a new full crash matrix are not claimed
+or added as new prerequisites for this original local joint acceptance. Only 5.5
+is newly checked here: GitGuard 24/28; 4.5, 5.1, 5.2 and 5.4 remain unchecked.
+
+
+### Independently accepted task 4.5: local reftable platform receipts — 25/28
+
+Added a separately selected Linux x86_64 / Git 2.47.3 / SHA-1 local reftable receipt profile after a real files-backend partial-transaction counterexample. The existing files profile, grant checks, controller journal and process restrictions remain in place. A reftable transaction couples the target CAS to the full operation/request/platform/candidate receipt. Independent read-only receipt consumption resolves lost controller acknowledgements after target advancement; missing/corrupt/misbound proof stays unknown. No auto-retry, compensation, remote write or power-loss claim is added. See `docs/operation-intents.md` and ledger `gitguard-receipt-*` evidence. Root independently accepted original task 4.5 at `13fd699fc405d108a3f2aeede2797fec1f980824`, combined with previously reviewed crash/cancel and fresh-authority retry protection. GitGuard is now 25/28; only 5.1, 5.2 and 5.4 remain unchecked. Evidence: ledger `gitguard-receipt-independent-review.md` and `gitguard-receipt-independent-verification.json`. Independent fixed-source checks passed both new receipt tests (two real SIGKILL checkpoints) and the old-files lost-delivery test; the author's 21 related tests remain separately recorded. This acceptance is process-crash consistency for the exact local profile, not power-loss durability, hosted platform receipt support or production identity deployment.
+
+
+### Task 5.4 required-specialist dispatch composition — pending review
+
+The existing local rollout example now calls a separate exact-M2 profile reusing the accepted joint corpus and actual private local writer. Each write entry consumes the once-frozen five-specialist requirement against its own apply context before grant/apply. Missing evidence, expiry/revocation and adapter removal cannot reach grant or mutate intent/target; a valid producer result still cannot grant execution. The existing independent operation authorization/CAS and executor rollback remain in force. Technical REQUIRE_APPROVAL, artifact hashes and history remain unchanged; current consumption is not an atomic future authorization guarantee. The older Gitflow candidate stays separate. See docs/rollout-and-rollback.md and ledger gitguard-required-rollout-{red,green,clippy}.log. No four-group/native matrix or package regeneration; 5.4 remains unchecked and total stays 25/28 until independent review.
+
+
+### Task 5.4 package aligned with required-check caller — pending review
+
+Updated the existing preparer's consumer pin from retained df8d5cc to fixed `85a9743023de788d91a370601ad2b7d5a649517a`; GE remains b0e4b445. A new independent source bundle preserves the old artifact unchanged. Inside the new package, the focused M2 rollout test passed, metadata resolves only bundled GG/GE, and 577+251 files match original archives except the explicit manifest path. Archive SHA256 `076d37b1d48fe214139f433348bf3ce5c267ce201fe7762a50e50ddb5784d643`; ledger `gitguard-package-85a9743-verification.json` records the exact source hashes and scope. No old full matrix/native rerun, current crate compatibility or public release claim. Task 5.4 remains unchecked, total 25/28.
+
+
+### Independently accepted original task 5.4 — 26/28
+
+Root accepted the local scope after fixed `85a9743023de788d91a370601ad2b7d5a649517a` required-check dispatch review and separate `2dd5c204120620c5c35f269089401b75ac0829ad` preparer/package review, combined with the earlier actual advisory/shadow/opt-in and independent adapter/executor rollback evidence. The new package contains the 85a9743 caller; the retained df8 package does not. Independent reports: ledger `gitguard-required-rollout-independent-review.md`, `gitguard-package-85a9743-independent-review.md` and its verification JSON. No production crate, hosted enforcement or atomic future authority across providers is implied. Only tasks 5.1 and 5.2 remain unchecked; GitGuard is 26/28.
+
+
+### Task 5.1 authenticated GitHub read-only profile — partial
+
+Added exact-byte HMAC verification, official-schema-bound merge-group parsing, explicit controller mapping to real local Git objects, bounded replay/withdrawal memory, and a mandatory external current-lookup port. No request-supplied authenticated flag, guessed membership, local replacement head or hosted admission is accepted. Five focused tests cover the official independent HMAC vector, candidate mapping, signed malformed/binding rejection, replay/delayed withdrawal/current lookup, and memory exhaustion; six candidate/queue regressions also pass. Scoped Clippy passes. RED/GREEN/capture evidence is in ledger `gitguard-github-*`; supported subset and limitations are in `adapters/github/README.md`. Task 5.1 remains unchecked and total remains 26/28. Source package 85a9743 is unchanged.
+
+### Task 5.1 local slice independently accepted; task remains partial
+
+Root's fixed `40d30c39240cfbab8f30ff333fdb14b865fc4e83` review passed all five focused tests and checked fixed source correspondence with no finding. Ledger `gitguard-github-independent-review.md` and its verification/capture/test artifacts record the result. Hosted protected checks, live installation authorization/current lookup and durable receipt/event operation remain outside this local slice; 5.1 stays unchecked.
+
+### Task 5.2 actual CodeGraph retained export — partial, pending review
+
+The new independent importer consumes real source-1072 / package-1.6.0 / schema-11 / extraction-27 JavaScript output and Git source bundle. Three focused tests verify the real static call across two controller tasks and reject wrong source, transport, version, candidate, dirty/error/unresolved state or mapping. Exact local Git blob hashes are checked. Empty edges remain unknown, and even the successful static risk observation never claims semantic completeness. Existing semantic uncertainty regression and scoped Clippy pass. Capture provenance and read-only SQLite side effects remain explicit in `adapters/codegraph/README.md` and ledger `codegraph-1072-capture-report.md`; test RED/GREEN evidence uses `gitguard-codegraph-*`. No package rebuild, upstream full build qualification, hosted permission, native CodeGuard substitution or task checkbox change. Total remains 26/28.
+
+### Task 5.2 independent GitLab read-only train response — pending review
+
+Added a separate REST v4 single-train-car profile with project/MR/train/pipeline identity and opaque exact ref binding. Controller-owned current lookup supplies independently established pipeline mode, exact candidate/base/ordered members and frozen response digest; payload JSON cannot assert authentication. Missing/null pipelines, unsupported/fallback state, mismatched current generation, absent local Git objects and unavailable/changing current lookup fail closed. The port is checked before and after actual local candidate preparation, with a public current recheck at consumption. Three focused tests and scoped Clippy pass; no hosted GitLab delivery, platform write or production authentication is claimed. The API shares existing candidate preparation only, not GitHub event fields. See `adapters/gitlab/README.md`. Task 5.2 remains unchecked, 26/28 unchanged pending independent review of both extension profiles.
+
+
+### Independently accepted original task 5.2 — 27/28
+
+Root accepted fixed GitLab `66ac20643781ae64bca6af170baaa05a458a6649` together with unchanged CodeGraph `1d95e743ff847176f657656f58a4aa841be382de` for the original task's explicit local fixture/profile scope. Independent GitLab review matched 589 source files and 17 GE source/manifest files, confirmed five CodeGraph source/fixture files unchanged, and ran all three GitLab tests successfully. Its original raw log is ledger `gitguard-gitlab-independent-test.log` (distinct from the author's transcribed output); report and hashes are `gitguard-gitlab-independent-review.md` and `gitguard-gitlab-independent-verification.json`. CodeGraph's independent report `gitguard-codegraph-independent-review.md` verifies the actual query/source bundle, 28 capture artifacts, 258 selected producer source files and 252 runtime hashes, plus three focused tests.
+
+The acceptance preserves exact candidate/blob/export bindings, independently typed GitLab semantics and explicit unsupported modes. CodeGraph success always retains unknown=true, complete=false and missing semantic-completeness; empty edges do not establish safety. No live GitLab instance, production provider, full upstream build, complete graph semantics, hosted check or receipt claim is added. No source artifacts/packages were replaced.
+
+Only original task 5.1 remains unchecked. Its local GitHub slice `40d30c39240cfbab8f30ff333fdb14b865fc4e83` is independently accepted, but authenticated live installation/current lookup and durable event handling are not implemented here; an authorized isolated GitHub repository with protected required checks is still needed to prove Hook-bypass blocking, group rebuild revalidation and actual receipt/candidate matching. No atomic exact hosted admission is supported without that proof. This registration changes documentation only, runs no additional tests and raises the accepted total to 27/28.

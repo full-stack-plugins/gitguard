@@ -1,0 +1,4 @@
+   Compiling cross-guard-core v0.1.0 (/workspace/guard-implementation-ledger/flowguard-joint-independent-capture/repository/core)
+   Compiling cross-guard-app v0.1.0 (/workspace/guard-implementation-ledger/flowguard-joint-independent-capture/repository/app)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.10s
+     Running unittests src/lib.rs (/workspace/guard-implementation/flowguard/target/debug/deps/cross_guard_app-210125e0a1121f28)

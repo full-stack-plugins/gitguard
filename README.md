@@ -2,71 +2,36 @@
 
 [English](README.md) · [简体中文](README.zh-CN.md)
 
-**Git policy, change scope, parallel-task conflict analysis, final merge candidate and branch governance for AI-native engineering.**
+GitGuard guards branch policy around the project's `git-common-dir/gitflow.xml`. It is a local assistant to native Git, not a replacement Git client or an unbypassable remote gate.
 
-> **Status: buildable agent-integration CLI and read-only MCP are available in source.** An explicitly trusted adapter reads active GitFlow rules; Git writes and server-enforced merge gates are not implemented.
+## Current runtime
 
-## Problem and approach
+The default Rust executable provides project installation, managed AGENTS guidance, read-only context, policy checks and MCP. Its explicitly selected [GitGuard plugin](https://github.com/full-stack-plugins/gitguard-plugin) provides profile initialization and native/Agent guard integration.
 
-Implemented professional checks: `policy check --action branch|merge|commit` and MCP `gitguard_policy_check` reuse the active GitFlow policy without Git writes. See [plugin usage, trust boundary and verification](plugin/README.md). `allow` is a policy decision; technical quality and approvals remain unevaluated.
+- Project `install` owns the receipt-protected AGENTS block and MCP configuration. Unknown or modified blocks are not overwritten.
+- Plugin `init` selects one of eight GitFlow profiles and initializes XML only. It does not read or modify AGENTS. Linked worktrees share policy through git-common-dir.
+- Policy checks use XML only; missing or corrupt XML is unverified, with no legacy JSON fallback.
+- Initializing configuration does not activate hooks. Existing hooks/managers are preserved; explicit integration is required. Native hooks cannot intercept every manual fast-forward/no-commit/no-verify operation.
+- Actual Agent host loading and trusted business-CI XML distribution remain unverified/unconfigured. Installation, protocol replay and candidate CI do not prove production readiness.
 
-Two agents may edit different files but break the same public API. A local Git hook can pass while the target branch moves, invalidating the checked merge result. GitGuard is designed to bind each change to an approved task, permitted change scope, actual Git refs, and the **exact final merge candidate**.
+## Build and use
 
-~~~text
-Approved task/scope + Target ref
-                ↓
-    Branch / Worktree / Scope checks
-                ↓
-   Diff + semantic-impact observations
-                ↓
-       Final merge candidate
-                ↓
-          GuardEngine evidence
-                ↓
-   FlowGuard approval + trusted executor
-                ↓
-  Protected CI / atomic target-ref verification
-~~~
-
-## Domain ownership
-
-GitGuard owns branch rules, change scope, repository and commit identities, semantic conflict warnings, target OID freshness and Git write-operation safety. It does **not** replace ArchGuard design analysis, CodeGuard code checks, TestGuard behavior tests, SpecGuard requirement approval, or FlowGuard lifecycle policy.
-
-Merge enforcement requires the actual Git hosting service's protected branches, independent required checks and properly scoped executor identities. Worktrees isolate directories, **not security privileges**. Ambiguous or failed Git writes require remote reconciliation before retry.
-
-## Documentation
-
-- [System architecture, trust boundaries and ADRs](docs/architecture.md)
-- [Technical blueprint, data/CLI/CI interfaces and delivery Waves](docs/technical-design.md)
-- [GuardEngine Protocol](https://github.com/full-stack-plugins/guardengine/blob/main/docs/protocol.md)
-
-## Planned CLI (not executable yet)
-
-~~~sh
-gitguard scope check --task TASK-104 --base main --head HEAD
-gitguard conflict analyze --task TASK-104
-gitguard merge preview --target main --head HEAD
-~~~
-
-GitGuard will initially adapt and validate existing GitFlow policy behavior, then migrate rule ownership only after differential tests. Never run force-push, destructive resets, branch deletion, or hidden fetches during read-only checks.
-
-See [GitHub repositories](https://github.com/orgs/full-stack-plugins/repositories).
-
-## Agent installation and managed instructions
-
-The shared installer provides `install`, `uninstall`, `context`, `instructions render|sync`, `doctor --integration`, and `serve --mcp` for Codex, Claude Code, and Gemini CLI. Each tool renders its own managed block.
+Check out the pinned GuardEngine beside this repository; see `.github/workflows/agent-installation.yml` for the exact dependency and paired plugin SHA. Rust 1.85+ is required for this default target.
 
 ```sh
 cargo build --locked
-gitguard install --agents codex,claude,gemini --project /absolute/project --bin-dir /absolute/bin --dry-run
-gitguard context --project /absolute/project
+./target/debug/gitguard --help
+./target/debug/gitguard install --agents codex --project /absolute/project --gitflow-root /absolute/gitguard-plugin --python /absolute/python --dry-run
+python /absolute/gitguard-plugin/scripts/gitflow.py init /absolute/project --profile github-flow --apply --json
+./target/debug/gitguard policy check --project /absolute/project --gitflow-root /absolute/gitguard-plugin --python /absolute/python --action merge --source feature/example --target main
 ```
 
-After building, invoke the executable under `target/debug/` (with `.exe` on Windows); short commands above assume PATH is configured. `--bin-dir` copies the current executable; PATH is not changed automatically. Remove `--dry-run` to apply. A sibling `../guardengine/crates/guard-install` source checkout is required.
+Use `.exe` on Windows. Remove installer `--dry-run` only for an intended project installation. The plugin launcher bootstrap `install --bin-dir` is distinct from Rust project installation. `allow` is only a policy verdict, not technical approval or permission to write Git.
 
-Dynamic rules require explicit `--gitflow-root <trusted-plugin> --python <existing-executable>` for install, context and sync. MCP configuration pins these arguments. Candidate drift is unverified; an absent adapter is unconfigured.
+Other runtime commands: `uninstall`, `context`, `instructions render|sync`, `doctor --integration`, `serve --mcp`. Ordinary native Git operations remain the user workflow.
 
-[Shared design, host mapping, update/uninstall and verification](https://github.com/full-stack-plugins/guardengine/blob/main/docs/agent-installation.md). Configuration success does not prove host loading or quality approval.
+## Preserved candidate-governance implementation
 
+The older roadmap branch is retained in [compat/candidate-governance](compat/candidate-governance/COMPATIBILITY.md), including its library, CLI, tests, fixtures, documentation and examples. It is a separately built Linux compatibility target with its original pinned GuardEngine API dependency and Rust 1.90 minimum. It is not installed or called by the default runtime. Its historical JSON observation adapter is not current policy authority; privileged execution remains disabled by default. The compatibility workflow runs the preserved tests explicitly.
 
-Read-only policy/context queries check effective Git `filter.*.clean` and `filter.*.process` configuration before requesting status, on both platforms. Any nonempty effective command returns `unverified` (`executable_filter_unverified`) without starting the filter, including inherited Git LFS commands. This intentionally conservative restriction requires an isolated environment or separately authorized workflow; the tool does not remove filters or substitute a fabricated clean status. Windows preserves native `GIT_AUTHOR_*`/`GIT_COMMITTER_*` identity variables while removing repository/config routing overrides. Optional index refresh writes are disabled on both platforms. This is local configuration inspection, not a sandbox against concurrent repository/config mutation.
+See [branch integration decisions](docs/branch-integration.md), [installation ownership](docs/xml-installation-fixture.md), [paired validation](docs/xml-adapter-verification.md), and [plugin trust boundaries](plugin/README.md).
