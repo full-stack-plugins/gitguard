@@ -38,7 +38,7 @@ class XMLInstallation(shared.Installation):
         subprocess.run(['git', 'init', '--quiet', str(self.project)], check=True, capture_output=True)
         filters = subprocess.run(['git', '-C', str(self.project), 'config', '--name-only',
                                   '--get-regexp', r'^filter\..*\.(clean|process)$'],
-                                 capture_output=True, text=True, check=False)
+                                 capture_output=True, text=True, encoding='utf-8', check=False)
         for key in filters.stdout.splitlines():
             subprocess.run(['git', '-C', str(self.project), 'config', '--local', key, ''], check=True, capture_output=True)
         (self.project/'AGENTS.md').write_bytes(b'Human guidance\r\n')
@@ -69,15 +69,15 @@ class XMLInstallation(shared.Installation):
         # Preserve the upstream isolation of inherited executable clean filters.
         filters = subprocess.run(['git', '-C', str(self.project), 'config', '--name-only',
                                   '--get-regexp', r'^filter\..*\.(clean|process)$'],
-                                 capture_output=True, text=True, check=False)
+                                 capture_output=True, text=True, encoding='utf-8', check=False)
         for key in filters.stdout.splitlines():
             subprocess.run(['git', '-C', str(self.project), 'config', '--local', key, ''],
                            check=True, capture_output=True)
         sys.path.insert(0, str(plugin / 'scripts'))
         from gitflow.xml_policy import encode, decode
         xml = self.project / '.git/gitflow.xml'
-        github = json.loads((plugin / 'profiles/github-flow.json').read_text())
-        classic = json.loads((plugin / 'profiles/classic-gitflow.json').read_text())
+        github = json.loads((plugin / 'profiles/github-flow.json').read_text(encoding='utf-8'))
+        classic = json.loads((plugin / 'profiles/classic-gitflow.json').read_text(encoding='utf-8'))
         for policy in (github, classic):
             # Real plugin init belongs to a separate staging repository. Only
             # policy XML is provisioned into the independent engine fixture.

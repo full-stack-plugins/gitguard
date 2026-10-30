@@ -24,11 +24,11 @@ class GuidanceCoexistence(unittest.TestCase):
         return {str(p.relative_to(self.project)):p.read_bytes() for p in self.project.rglob('*') if p.is_file()}
 
     def init(self,*args,code=0):
-        p=subprocess.run([sys.executable,str(PLUGIN/'scripts/gitflow.py'),'init',str(self.project),'--profile','github-flow','--apply','--json',*args],env=self.env,capture_output=True,text=True,timeout=30)
+        p=subprocess.run([sys.executable,str(PLUGIN/'scripts/gitflow.py'),'init',str(self.project),'--profile','github-flow','--apply','--json',*args],env=self.env,capture_output=True,text=True,encoding='utf-8',timeout=30)
         self.assertEqual(p.returncode,code,p.stdout+p.stderr);return json.loads(p.stdout)
 
     def engine(self,*args,code=0):
-        p=subprocess.run([str(BIN),*args,'--project',str(self.project),'--home',str(self.home),'--gitflow-root',str(PLUGIN),'--python',sys.executable],env=self.env,capture_output=True,text=True,timeout=30)
+        p=subprocess.run([str(BIN),*args,'--project',str(self.project),'--home',str(self.home),'--gitflow-root',str(PLUGIN),'--python',sys.executable],env=self.env,capture_output=True,text=True,encoding='utf-8',timeout=30)
         self.assertEqual(p.returncode,code,p.stdout+p.stderr);return json.loads(p.stdout)
 
     def assert_reference_guidance(self):
@@ -80,7 +80,7 @@ class GuidanceCoexistence(unittest.TestCase):
         self.agents.unlink();self.init();self.assertFalse(self.agents.exists())
         xml=(self.project/'.git/gitflow.xml').read_bytes()
         self.engine('install','--agents','codex')
-        self.assertEqual(self.agents.read_text().count('<!-- GITGUARD_START -->'),1)
+        self.assertEqual(self.agents.read_text(encoding='utf-8').count('<!-- GITGUARD_START -->'),1)
         self.assertEqual((self.project/'.git/gitflow.xml').read_bytes(),xml)
 
     def test_broken_runtime_marker_is_preserved_by_both_entrypoints(self):
@@ -93,7 +93,7 @@ class GuidanceCoexistence(unittest.TestCase):
     def test_legacy_receipt_owned_runtime_block_migrates_by_explicit_sync(self):
         self.engine('install','--agents','codex')
         receipt_file=self.project/'.guard-install/gitguard.json'
-        receipt=json.loads(receipt_file.read_text())
+        receipt=json.loads(receipt_file.read_text(encoding='utf-8'))
         entry=next(e for e in receipt['entries'] if e['kind']=='markdown' and Path(e['path'])==self.agents)
         current=entry['content']
         # A recorded v0.1.0 block fixture: actual ownership receipt, no mock executor.

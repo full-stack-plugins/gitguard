@@ -20,13 +20,13 @@ class PolicyCheck(unittest.TestCase):
         self.git('init', '-b', 'feature/task')
         # 仅隔离临时夹具中继承的宿主 LFS 等命令，不修改用户 Git 配置。
         inherited = subprocess.run(['git', '-C', str(self.repo), 'config', '--get-regexp',
-                                    r'^filter\..*\.(clean|process)$'], capture_output=True, text=True)
+                                    r'^filter\..*\.(clean|process)$'], capture_output=True, text=True, encoding='utf-8')
         for key in {line.split(maxsplit=1)[0] for line in inherited.stdout.splitlines() if line}:
             self.git('config', key, '')
         self.git('-c', 'user.name=Test', '-c', 'user.email=test@example.org', 'commit', '--allow-empty', '-m', 'seed')
         self.git('branch', 'main')
         self.git('branch', 'develop')
-        self.policy = json.loads((ADAPTER / 'profiles/classic-gitflow.json').read_text())
+        self.policy = json.loads((ADAPTER / 'profiles/classic-gitflow.json').read_text(encoding='utf-8'))
         self.policy['commit_message_pattern'] = r'feat: .+'
         self.activate()
 
@@ -99,8 +99,8 @@ class PolicyCheck(unittest.TestCase):
         self.assertEqual(len(profiles),8)
         for file in profiles:
             with self.subTest(profile=file.stem):
-                self.policy=json.loads(file.read_text());self.activate()
-                result=subprocess.run([str(BIN),'context','--project',str(self.repo),'--gitflow-root',str(ADAPTER),'--python',sys.executable],capture_output=True,text=True,timeout=20)
+                self.policy=json.loads(file.read_text(encoding='utf-8'));self.activate()
+                result=subprocess.run([str(BIN),'context','--project',str(self.repo),'--gitflow-root',str(ADAPTER),'--python',sys.executable],capture_output=True,text=True,encoding='utf-8',timeout=20)
                 self.assertEqual(result.returncode,0,result.stderr)
                 domain=json.loads(result.stdout)['domain']
                 self.assertEqual(domain['status'],'active')
