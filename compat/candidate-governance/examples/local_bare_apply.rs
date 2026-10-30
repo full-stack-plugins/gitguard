@@ -1,4 +1,6 @@
 //! Isolated fixture demonstration, not a production identity provider or user-repository CLI.
+#[path = "support/local_bare_rendezvous.rs"]
+mod rendezvous;
 use gitguard::{
     Repository,
     candidate::{CandidateRequest, CandidateSnapshot},
@@ -12,6 +14,7 @@ use gitguard::{
     scope::TaskScope,
     subject::SubjectRequest,
 };
+use rendezvous::Rendezvous;
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::{
@@ -20,9 +23,10 @@ use std::{
     path::{Path, PathBuf},
     process::Command,
     sync::{
-        Arc, Barrier,
+        Arc,
         atomic::{AtomicBool, AtomicUsize, Ordering},
     },
+    time::Duration,
 };
 const REFERENCE: &str = "fixture:grant";
 struct Clock;
@@ -37,7 +41,7 @@ impl GrantClock for Clock {
 struct Authority {
     record: OperationGrant,
     denied: bool,
-    barrier: Option<Arc<Barrier>>,
+    barrier: Option<Arc<Rendezvous>>,
     calls: AtomicUsize,
 }
 impl GrantAuthority for Authority {
@@ -51,7 +55,7 @@ impl GrantAuthority for Authority {
         if self.calls.fetch_add(1, Ordering::SeqCst) == 1
             && let Some(barrier) = &self.barrier
         {
-            barrier.wait();
+            barrier.arrive().map_err(|_| PortError::Unavailable)?;
         }
         Ok(self.record.clone())
     }
@@ -391,20 +395,46 @@ fn main() {
     let other_intents = IntentStore::create(&second).unwrap();
     let (s1, mut a1, input1) = authority(&f, &c, GrantAction::Merge, Some(&f.base), "atomic-a");
     let (s2, mut a2, input2) = authority(&f, &c, GrantAction::Merge, Some(&f.base), "atomic-b");
-    let barrier = Arc::new(Barrier::new(2));
+    let barrier = Arc::new(Rendezvous::new(Duration::from_secs(30)));
     a1.barrier = Some(barrier.clone());
-    a2.barrier = Some(barrier);
+    a2.barrier = Some(barrier.clone());
     let before = c.oid();
     let (r1, r2) = std::thread::scope(|scope| {
-        let x = scope.spawn(|| dispatch(&f, &f.candidate, &c.target, &c.intents, &s1, &a1));
-        let y = scope.spawn(|| dispatch(&f, &f.candidate, &c.target, &other_intents, &s2, &a2));
-        (x.join().unwrap(), y.join().unwrap())
+        let x = scope.spawn(|| {
+            let result = dispatch(&f, &f.candidate, &c.target, &c.intents, &s1, &a1);
+            barrier.participant_finished();
+            result
+        });
+        let y = scope.spawn(|| {
+            let result = dispatch(&f, &f.candidate, &c.target, &other_intents, &s2, &a2);
+            barrier.participant_finished();
+            result
+        });
+        (x.join(), y.join())
     });
+    let diagnostic =
+        |joined: &std::thread::Result<Result<LocalCasReceipt, ApplyError>>| match joined {
+            Ok(Ok(receipt)) => {
+                json!({"status":"local_cas_acknowledged","operation_id":receipt.operation_id()})
+            }
+            Ok(Err(error)) => json!({"status":"rejected","error":format!("{error:?}")}),
+            Err(_) => json!({"status":"worker_panicked"}),
+        };
+    // Emit actual outcomes before assertions so an early failure is diagnosable.
+    // Never reinterpret two failed workers or a timed-out rendezvous as success.
+    eprintln!(
+        "{}",
+        json!({"case":"atomic_competition_diagnostic", "results":[diagnostic(&r1), diagnostic(&r2)], "rendezvous":barrier.snapshot().ok(), "authority_calls":[a1.calls.load(Ordering::SeqCst),a2.calls.load(Ordering::SeqCst)]})
+    );
+    let (r1, r2) = (r1.unwrap(), r2.unwrap());
+    let rendezvous = barrier.snapshot().unwrap();
+    assert_eq!(rendezvous.arrivals, 2);
+    assert!(!rendezvous.aborted && !rendezvous.timed_out);
     assert_ne!(r1.is_ok(), r2.is_ok());
     assert!(matches!(&r1, Ok(_) | Err(ApplyError::RecoveryRequired)));
     assert!(matches!(&r2, Ok(_) | Err(ApplyError::RecoveryRequired)));
     assert_eq!(c.oid().as_deref(), Some(f.candidate.candidate_oid()));
-    cases.push(json!({"case":"atomic_competition","inputs":[input1,input2],"before_oid":before,"after_oid":c.oid(),"results":[outcome(r1),outcome(r2)],"intent_events":[events(&c.intent_path),events(&second)],"barrier":"after both durable claims, before two real Git CAS commands"}));
+    cases.push(json!({"case":"atomic_competition","inputs":[input1,input2],"before_oid":before,"after_oid":c.oid(),"results":[outcome(r1),outcome(r2)],"intent_events":[events(&c.intent_path),events(&second)],"barrier":"bounded rendezvous after both durable claims, before two real Git CAS commands"}));
     let after_source = digest_tree(&f.source);
     assert_eq!(before_source, after_source);
     println!("{}",serde_json::to_string_pretty(&json!({"profile":"isolated-local-bare-fixture/v1","fixture_identity":"fixture-only-issuer; not production authentication","git_version":git(&f.source,&["version"]),"fixed_commit_date":"2000-01-01T00:00:00Z","base_oid":f.base,"candidate":f.candidate,"same_tree_alternate_oid":f.alternate.candidate_oid(),"source_before_sha256":before_source,"source_after_sha256":after_source,"source_unchanged":true,"temporary_repositories_removed_on_exit":true,"receipt_semantics":"historical local CAS acknowledgement; reconciliation not implemented","cases":cases})).unwrap());

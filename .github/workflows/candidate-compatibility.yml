@@ -65,6 +65,7 @@ jobs:
           umask 022
           bash ../../scripts/ci-git-minimum.sh run "$COMPAT_GIT" cargo test --locked --features privileged-execution
       - name: Exercise only self-created isolated bare repositories
+        timeout-minutes: 5
         run: |
           umask 022
           bash ../../scripts/ci-git-minimum.sh run "$COMPAT_GIT" cargo run --locked --features privileged-execution --example local_bare_apply
