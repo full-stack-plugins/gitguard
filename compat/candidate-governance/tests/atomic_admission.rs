@@ -1,3 +1,6 @@
+#[cfg(feature = "privileged-execution")]
+#[path = "../examples/support/local_bare_rendezvous.rs"]
+mod bounded_rendezvous;
 mod common;
 use common::evidence::*;
 use gitguard::execution::{
@@ -339,13 +342,12 @@ fn revocation_after_durable_claim_is_uncertain_and_never_retried() {
 #[cfg(feature = "privileged-execution")]
 #[test]
 fn two_prechecked_writers_cannot_overwrite_the_cas_winner() {
-    use std::sync::{
-        Barrier,
-        atomic::{AtomicUsize, Ordering},
-    };
+    use bounded_rendezvous::Rendezvous;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::time::Duration;
     struct Wait<'a> {
         record: OperationGrant,
-        barrier: &'a Barrier,
+        barrier: &'a Rendezvous,
         calls: AtomicUsize,
     }
     impl GrantAuthority for Wait<'_> {
@@ -354,7 +356,7 @@ fn two_prechecked_writers_cannot_overwrite_the_cas_winner() {
         }
         fn authenticate(&self, _: &str) -> Result<OperationGrant, PortError> {
             if self.calls.fetch_add(1, Ordering::SeqCst) == 1 {
-                self.barrier.wait();
+                self.barrier.arrive().map_err(|_| PortError::Unavailable)?;
             }
             Ok(self.record.clone())
         }
@@ -376,7 +378,7 @@ fn two_prechecked_writers_cannot_overwrite_the_cas_winner() {
     let intents2 = IntentStore::create(root2.path()).unwrap();
     let (s1, a1) = session(&e, GrantAction::Merge, "refs/heads/main", "one");
     let (s2, a2) = session(&e, GrantAction::Merge, "refs/heads/main", "two");
-    let barrier = Barrier::new(2);
+    let barrier = Rendezvous::new(Duration::from_secs(30));
     let a1 = Wait {
         record: a1.0,
         barrier: &barrier,
@@ -392,7 +394,7 @@ fn two_prechecked_writers_cannot_overwrite_the_cas_winner() {
     let (s1, s2, a1, a2) = (&s1, &s2, &a1, &a2);
     let results = std::thread::scope(|scope| {
         let run = |session, authority: &dyn GrantAuthority, intents: &IntentStore| {
-            apply(
+            let result = apply(
                 &ApplyContext {
                     config: &config,
                     repository: &e.repo,
@@ -405,15 +407,32 @@ fn two_prechecked_writers_cannot_overwrite_the_cas_winner() {
                     cancel: &cancel,
                 },
                 &target,
-            )
-            .is_ok()
+            );
+            barrier.participant_finished();
+            result
         };
         let i1 = &intents;
         let i2 = &intents2;
         let x = scope.spawn(move || run(s1, a1, i1));
         let y = scope.spawn(move || run(s2, a2, i2));
-        [x.join().unwrap(), y.join().unwrap()]
+        [x.join(), y.join()]
     });
+    let outcomes: Vec<_> = results
+        .iter()
+        .map(|joined| match joined {
+            Ok(Ok(_)) => "local_cas_acknowledged".to_owned(),
+            Ok(Err(error)) => format!("rejected: {error:?}"),
+            Err(_) => "worker_panicked".to_owned(),
+        })
+        .collect();
+    eprintln!(
+        "{}",
+        serde_json::json!({"test":"two_prechecked_writers_cannot_overwrite_the_cas_winner","results":outcomes,"rendezvous":barrier.snapshot().ok(),"authority_calls":[a1.calls.load(Ordering::SeqCst),a2.calls.load(Ordering::SeqCst)]})
+    );
+    let snapshot = barrier.snapshot().unwrap();
+    assert_eq!(snapshot.arrivals, 2);
+    assert!(!snapshot.aborted && !snapshot.timed_out);
+    let results = results.map(|joined| joined.unwrap().is_ok());
     for root in [&root, &root2] {
         let j: serde_json::Value =
             serde_json::from_slice(&std::fs::read(root.path().join("intent.json")).unwrap())
@@ -673,13 +692,12 @@ fn local_push_rejects_non_fast_forward() {
 #[cfg(feature = "privileged-execution")]
 #[test]
 fn local_push_concurrent_cas_has_one_winner() {
-    use std::sync::{
-        Barrier,
-        atomic::{AtomicUsize, Ordering},
-    };
+    use bounded_rendezvous::Rendezvous;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::time::Duration;
     struct Wait<'a> {
         record: OperationGrant,
-        barrier: &'a Barrier,
+        barrier: &'a Rendezvous,
         calls: AtomicUsize,
     }
     impl GrantAuthority for Wait<'_> {
@@ -688,7 +706,7 @@ fn local_push_concurrent_cas_has_one_winner() {
         }
         fn authenticate(&self, _: &str) -> Result<OperationGrant, PortError> {
             if self.calls.fetch_add(1, Ordering::SeqCst) == 1 {
-                self.barrier.wait();
+                self.barrier.arrive().map_err(|_| PortError::Unavailable)?;
             }
             Ok(self.record.clone())
         }
@@ -710,7 +728,7 @@ fn local_push_concurrent_cas_has_one_winner() {
     let intents2 = IntentStore::create(root2.path()).unwrap();
     let (s1, a1) = session(&e, GrantAction::Push, "refs/heads/main", "one");
     let (s2, a2) = session(&e, GrantAction::Push, "refs/heads/main", "two");
-    let barrier = Barrier::new(2);
+    let barrier = Rendezvous::new(Duration::from_secs(30));
     let a1 = Wait {
         record: a1.0,
         barrier: &barrier,
@@ -726,7 +744,7 @@ fn local_push_concurrent_cas_has_one_winner() {
     let (s1, s2, a1, a2) = (&s1, &s2, &a1, &a2);
     let results = std::thread::scope(|scope| {
         let run = |session, authority: &dyn GrantAuthority, intents: &IntentStore| {
-            apply(
+            let result = apply(
                 &ApplyContext {
                     config: &config,
                     repository: &e.repo,
@@ -739,15 +757,32 @@ fn local_push_concurrent_cas_has_one_winner() {
                     cancel: &cancel,
                 },
                 &target,
-            )
-            .is_ok()
+            );
+            barrier.participant_finished();
+            result
         };
         let i1 = &intents;
         let i2 = &intents2;
         let x = scope.spawn(move || run(s1, a1, i1));
         let y = scope.spawn(move || run(s2, a2, i2));
-        [x.join().unwrap(), y.join().unwrap()]
+        [x.join(), y.join()]
     });
+    let outcomes: Vec<_> = results
+        .iter()
+        .map(|joined| match joined {
+            Ok(Ok(_)) => "local_cas_acknowledged".to_owned(),
+            Ok(Err(error)) => format!("rejected: {error:?}"),
+            Err(_) => "worker_panicked".to_owned(),
+        })
+        .collect();
+    eprintln!(
+        "{}",
+        serde_json::json!({"test":"local_push_concurrent_cas_has_one_winner","results":outcomes,"rendezvous":barrier.snapshot().ok(),"authority_calls":[a1.calls.load(Ordering::SeqCst),a2.calls.load(Ordering::SeqCst)]})
+    );
+    let snapshot = barrier.snapshot().unwrap();
+    assert_eq!(snapshot.arrivals, 2);
+    assert!(!snapshot.aborted && !snapshot.timed_out);
+    let results = results.map(|joined| joined.unwrap().is_ok());
     for root in [&root, &root2] {
         let j: serde_json::Value =
             serde_json::from_slice(&std::fs::read(root.path().join("intent.json")).unwrap())

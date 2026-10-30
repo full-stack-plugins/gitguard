@@ -1,3 +1,6 @@
+#[cfg(feature = "privileged-execution")]
+#[path = "../examples/support/local_bare_rendezvous.rs"]
+mod bounded_rendezvous;
 mod common;
 use common::evidence::*;
 use gitguard::execution::{
@@ -223,15 +226,17 @@ fn rejects_existing_paths_symlinks_and_replaced_parent_before_claim() {
 #[cfg(feature = "privileged-execution")]
 #[test]
 fn independent_worktree_publishers_have_one_winner_and_keep_unknown_staging() {
+    use bounded_rendezvous::Rendezvous as Gate;
     use gitguard::execution::reconcile::RecoveryState;
     use std::sync::{
-        Arc, Barrier,
+        Arc,
         atomic::{AtomicUsize, Ordering},
     };
+    use std::time::Duration;
     struct Rendezvous {
         grant: OperationGrant,
         count: AtomicUsize,
-        barrier: Arc<Barrier>,
+        barrier: Arc<Gate>,
     }
     impl GrantAuthority for Rendezvous {
         fn adapter_id(&self) -> &str {
@@ -239,7 +244,7 @@ fn independent_worktree_publishers_have_one_winner_and_keep_unknown_staging() {
         }
         fn authenticate(&self, _: &str) -> Result<OperationGrant, PortError> {
             if self.count.fetch_add(1, Ordering::SeqCst) == 2 {
-                self.barrier.wait();
+                self.barrier.arrive().map_err(|_| PortError::Unavailable)?;
             }
             Ok(self.grant.clone())
         }
@@ -262,7 +267,7 @@ fn independent_worktree_publishers_have_one_winner_and_keep_unknown_staging() {
         .iter()
         .map(|root| IntentStore::create(root.path()).unwrap())
         .collect();
-    let barrier = Arc::new(Barrier::new(2));
+    let barrier = Arc::new(Gate::new(Duration::from_secs(30)));
     let sessions: Vec<_> = (0..2)
         .map(|i| {
             session(
@@ -293,6 +298,7 @@ fn independent_worktree_publishers_have_one_winner_and_keep_unknown_staging() {
                 let authorities = &authorities;
                 let config = &config;
                 let cancel = &cancel;
+                let barrier = barrier.clone();
                 scope.spawn(move || {
                     let context = ApplyContext {
                         config,
@@ -305,15 +311,37 @@ fn independent_worktree_publishers_have_one_winner_and_keep_unknown_staging() {
                         intents: &stores[i],
                         cancel,
                     };
-                    apply_worktree(&context, target)
+                    let result = apply_worktree(&context, target);
+                    barrier.participant_finished();
+                    result
                 })
             })
             .collect();
         threads
             .into_iter()
-            .map(|thread| thread.join().unwrap())
+            .map(|thread| thread.join())
             .collect::<Vec<_>>()
     });
+    let outcomes: Vec<_> = results
+        .iter()
+        .map(|joined| match joined {
+            Ok(Ok(_)) => "local_worktree_acknowledged".to_owned(),
+            Ok(Err(error)) => format!("rejected: {error:?}"),
+            Err(_) => "worker_panicked".to_owned(),
+        })
+        .collect();
+    let authority_calls: Vec<_> = authorities
+        .iter()
+        .map(|a| a.count.load(Ordering::SeqCst))
+        .collect();
+    eprintln!(
+        "{}",
+        serde_json::json!({"test":"independent_worktree_publishers_have_one_winner_and_keep_unknown_staging","results":outcomes,"rendezvous":barrier.snapshot().ok(),"authority_calls":authority_calls})
+    );
+    let snapshot = barrier.snapshot().unwrap();
+    assert_eq!(snapshot.arrivals, 2);
+    assert!(!snapshot.aborted && !snapshot.timed_out);
+    let results: Vec<_> = results.into_iter().map(|joined| joined.unwrap()).collect();
     assert_eq!(results.iter().filter(|result| result.is_ok()).count(), 1);
     assert_eq!(
         results
